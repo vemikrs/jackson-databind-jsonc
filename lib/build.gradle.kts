@@ -10,6 +10,9 @@ plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
+group = "jp.vemi"
+version = "0.1.0"
+
 repositories {
     mavenCentral()
 }
@@ -33,6 +36,8 @@ java {
 tasks {
     shadowJar {
         relocate("com.fasterxml.jackson", "shadow.com.fasterxml.jackson")
+        archiveFileName.set("${project.name}-${project.version}.jar")  // JARファイル名を設定
+        destinationDirectory.set(file("build/libs"))  // 出力ディレクトリを設定
     }
     named<Test>("test") {
         useJUnitPlatform()
