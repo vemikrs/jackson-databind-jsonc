@@ -1,6 +1,5 @@
-package jp.vemi.jsoncmapper.test;
+package jp.vemi.jsoncmapper;
 
-import jp.vemi.jsoncmapper.JsoncMapper;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 

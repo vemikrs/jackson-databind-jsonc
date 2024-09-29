@@ -17,16 +17,12 @@ repositories {
 }
 
 dependencies {
-    // Use JUnit Jupiter for testing.
     implementation("com.fasterxml.jackson.core:jackson-databind:[2.9,2.18)")
-    testImplementation(libs.junit.jupiter)
 
+    testImplementation(libs.junit.jupiter)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-    // This dependency is exported to consumers, that is to say found on their compile classpath.
     api(libs.commons.math3)
-
-    // This dependency is used internally, and not exposed to consumers on their own compile classpath.
     implementation(libs.guava)
 }
 
@@ -43,6 +39,5 @@ tasks {
     }
 }
 tasks.named<Test>("test") {
-    // Use JUnit Platform for unit tests.
     useJUnitPlatform()
 }
