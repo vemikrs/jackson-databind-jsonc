@@ -8,6 +8,7 @@
 plugins {
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 repositories {
@@ -17,6 +18,7 @@ repositories {
 
 dependencies {
     // Use JUnit Jupiter for testing.
+    implementation("com.fasterxml.jackson.core:jackson-databind:[2.9,2.18)")
     testImplementation(libs.junit.jupiter)
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -33,6 +35,10 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+shadowJar {
+    relocate("com.fasterxml.jackson", "shadow.com.fasterxml.jackson")
 }
 
 tasks.named<Test>("test") {
