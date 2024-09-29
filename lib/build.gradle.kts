@@ -37,10 +37,11 @@ java {
     }
 }
 
-shadowJar {
-    relocate("com.fasterxml.jackson", "shadow.com.fasterxml.jackson")
+tasks {
+    shadowJar {
+        relocate("com.fasterxml.jackson", "shadow.com.fasterxml.jackson")
+    }
 }
-
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
