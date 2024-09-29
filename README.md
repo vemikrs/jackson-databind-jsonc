@@ -12,14 +12,15 @@ This project extends Jackson's `JsonMapper` by adding a new `JsoncMapper` to han
 ### Maven
 ```xml
 <dependency>
-    <groupId>jp.vemi</groupId>
-    <artifactId>jsoncmapper</artifactId>
-    <version>1.0.0</version>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.13.0</version>
 </dependency>
+```
 
 ### Gradle
-```gradle
-implementation 'jp.vemi:jsoncmapper:1.0.0'
+```groovy
+implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.0'
 ```
 
 ## Adding jar file
