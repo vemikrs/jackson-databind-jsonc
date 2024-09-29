@@ -6,13 +6,11 @@
  */
 
 plugins {
-    // Apply the java-library plugin for API and implementation separation.
     `java-library`
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 repositories {
-    // Use Maven Central for resolving dependencies.
     mavenCentral()
 }
 
@@ -26,7 +24,6 @@ dependencies {
     implementation(libs.guava)
 }
 
-// Apply a specific Java toolchain to ease working on different environments.
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -37,7 +34,7 @@ tasks {
     shadowJar {
         relocate("com.fasterxml.jackson", "shadow.com.fasterxml.jackson")
     }
-}
-tasks.named<Test>("test") {
-    useJUnitPlatform()
+    named<Test>("test") {
+        useJUnitPlatform()
+    }
 }
