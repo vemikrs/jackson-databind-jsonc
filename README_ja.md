@@ -1,15 +1,20 @@
 # Jackson-Databind-Jsonc
 
-このプロジェクトは、Jacksonの `JsonMapper` を拡張し、JSONC（コメント付きJSON）形式を処理するための新しい `JsoncMapper` を追加します。
+このプロジェクトは、Jacksonの `JsonMapper` を拡張し、JSONC（コメント付きJSON）形式を処理するための新しい **`JsoncMapper`** を追加します。
 
 ## 特徴
 
-- Jacksonの `JsonMapper` を拡張
 - JSONC形式をサポート
+- Jacksonの `JsonMapper` を拡張
 
 ## インストール
 
-### Maven
+### 依存関係を追加
+
+jackson-databindをインストールする必要があります。  
+バージョンは任意です。
+
+#### Mavenを使用する場合
 ```xml
 <dependency>
     <groupId>com.fasterxml.jackson.core</groupId>
@@ -18,17 +23,17 @@
 </dependency>
 ```
 
-### Gradle
+#### Gradleを使用する場合
 ```groovy
 implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.0'
 ```
 
-## jarファイルの追加
+### jarファイルの追加
 
 1. リリースページから最新のjarファイルをダウンロードします。
 1. プロジェクトのクラスパスにjarファイルを追加します。
 
-## 使用法
+## 使用方法
 
 `JsoncMapper`を使用するサンプルコードは以下の通りです。
 
