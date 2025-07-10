@@ -49,6 +49,18 @@ public class JsoncMapperTest {
         });
     }
 
+    @Test
+    public void testNullInputValidation() {
+        JsoncMapper mapper = new JsoncMapper();
+        assertThrows(IllegalArgumentException.class, () -> {
+            mapper.readValue((String) null, MyClass.class);
+        });
+        
+        assertThrows(IllegalArgumentException.class, () -> {
+            mapper.readValue("{}", (Class<MyClass>) null);
+        });
+    }
+
     static class MyClass {
         private String key;
         public String getKey() { return key; }

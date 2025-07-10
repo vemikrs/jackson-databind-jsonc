@@ -45,4 +45,17 @@ public class JsoncUtilsTest {
         String result = JsoncUtils.removeComments(jsonc);
         assertEquals(expected, result);
     }
+
+    @Test
+    public void testNullInput() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            JsoncUtils.removeComments(null);
+        });
+    }
+
+    @Test 
+    public void testEmptyInput() {
+        String result = JsoncUtils.removeComments("");
+        assertEquals("", result);
+    }
 }
