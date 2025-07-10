@@ -18,7 +18,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.fasterxml.jackson.core:jackson-databind:[2.9,2.18)")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.4")
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
