@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import java.io.*;
@@ -483,6 +484,124 @@ public class JsoncMapper extends JsonMapper {
         try (InputStream inputStream = url.openStream()) {
             return readInputStreamToString(inputStream);
         }
+    }
+    
+    /**
+     * Parse JSONC (JSON with Comments) content into a JsonNode tree.
+     * 
+     * @param content JSONC content string
+     * @return JsonNode tree
+     * @throws JsonProcessingException if JSON parsing fails
+     * @throws IllegalArgumentException if content is null
+     */
+    @Override
+    public JsonNode readTree(String content) throws JsonProcessingException {
+        if (content == null) {
+            throw new IllegalArgumentException("Content cannot be null");
+        }
+        
+        String json = JsoncUtils.removeComments(content);
+        return super.readTree(json);
+    }
+    
+    /**
+     * Parse JSONC (JSON with Comments) content from a File into a JsonNode tree.
+     * 
+     * @param file source file containing JSONC content
+     * @return JsonNode tree
+     * @throws IOException if file reading fails
+     * @throws JsonProcessingException if JSON parsing fails
+     * @throws IllegalArgumentException if file is null
+     */
+    @Override
+    public JsonNode readTree(File file) throws IOException, JsonProcessingException {
+        if (file == null) {
+            throw new IllegalArgumentException("Source file cannot be null");
+        }
+        
+        String content = readFileToString(file);
+        String json = JsoncUtils.removeComments(content);
+        return super.readTree(json);
+    }
+    
+    /**
+     * Parse JSONC (JSON with Comments) content from a Reader into a JsonNode tree.
+     * 
+     * @param reader source reader containing JSONC content
+     * @return JsonNode tree
+     * @throws IOException if reading fails
+     * @throws JsonProcessingException if JSON parsing fails
+     * @throws IllegalArgumentException if reader is null
+     */
+    @Override
+    public JsonNode readTree(Reader reader) throws IOException, JsonProcessingException {
+        if (reader == null) {
+            throw new IllegalArgumentException("Source reader cannot be null");
+        }
+        
+        String content = readReaderToString(reader);
+        String json = JsoncUtils.removeComments(content);
+        return super.readTree(json);
+    }
+    
+    /**
+     * Parse JSONC (JSON with Comments) content from an InputStream into a JsonNode tree.
+     * 
+     * @param inputStream source InputStream containing JSONC content
+     * @return JsonNode tree
+     * @throws IOException if reading fails
+     * @throws JsonProcessingException if JSON parsing fails
+     * @throws IllegalArgumentException if InputStream is null
+     */
+    @Override
+    public JsonNode readTree(InputStream inputStream) throws IOException, JsonProcessingException {
+        if (inputStream == null) {
+            throw new IllegalArgumentException("Source InputStream cannot be null");
+        }
+        
+        String content = readInputStreamToString(inputStream);
+        String json = JsoncUtils.removeComments(content);
+        return super.readTree(json);
+    }
+    
+    /**
+     * Parse JSONC (JSON with Comments) content from a URL into a JsonNode tree.
+     * 
+     * @param url source URL containing JSONC content
+     * @return JsonNode tree
+     * @throws IOException if URL reading fails
+     * @throws JsonProcessingException if JSON parsing fails
+     * @throws IllegalArgumentException if URL is null
+     */
+    @Override
+    public JsonNode readTree(URL url) throws IOException, JsonProcessingException {
+        if (url == null) {
+            throw new IllegalArgumentException("Source URL cannot be null");
+        }
+        
+        String content = readUrlToString(url);
+        String json = JsoncUtils.removeComments(content);
+        return super.readTree(json);
+    }
+    
+    /**
+     * Parse JSONC (JSON with Comments) content from a byte array into a JsonNode tree.
+     * 
+     * @param content source byte array containing JSONC content
+     * @return JsonNode tree
+     * @throws IOException if reading fails
+     * @throws JsonProcessingException if JSON parsing fails
+     * @throws IllegalArgumentException if byte array is null
+     */
+    @Override
+    public JsonNode readTree(byte[] content) throws IOException, JsonProcessingException {
+        if (content == null) {
+            throw new IllegalArgumentException("Source byte array cannot be null");
+        }
+        
+        String contentStr = new String(content, StandardCharsets.UTF_8);
+        String json = JsoncUtils.removeComments(contentStr);
+        return super.readTree(json);
     }
     private String readFileToString(File file) throws IOException {
         try (FileInputStream fis = new FileInputStream(file);

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -322,6 +323,113 @@ public class JsoncMapperTest {
         assertThrows(IllegalArgumentException.class, () -> {
             byte[] bytes = "{}".getBytes();
             mapper.readValue(bytes, (Class<MyClass>) null);
+        });
+    }
+    
+    @Test
+    public void testReadTreeFromString() throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        String jsoncContent = "{ /* comment */ \"key\": \"value\" }";
+        
+        JsonNode result = mapper.readTree(jsoncContent);
+        assertNotNull(result);
+        assertTrue(result.isObject());
+        assertEquals("value", result.get("key").asText());
+    }
+    
+    @Test
+    public void testReadTreeFromStringNullValidation() {
+        JsoncMapper mapper = new JsoncMapper();
+        assertThrows(IllegalArgumentException.class, () -> {
+            mapper.readTree((String) null);
+        });
+    }
+    
+    @Test
+    public void testReadTreeFromFile(@TempDir Path tempDir) throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        File testFile = tempDir.resolve("test_tree.jsonc").toFile();
+        
+        // Write JSONC content to file
+        String jsoncContent = "{ /* comment */ \"key\": \"value\" }";
+        try (FileWriter writer = new FileWriter(testFile)) {
+            writer.write(jsoncContent);
+        }
+        
+        // Test reading from file
+        JsonNode result = mapper.readTree(testFile);
+        assertNotNull(result);
+        assertTrue(result.isObject());
+        assertEquals("value", result.get("key").asText());
+    }
+    
+    @Test
+    public void testReadTreeFromFileNullValidation() {
+        JsoncMapper mapper = new JsoncMapper();
+        assertThrows(IllegalArgumentException.class, () -> {
+            mapper.readTree((File) null);
+        });
+    }
+    
+    @Test
+    public void testReadTreeFromReader() throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        String jsoncContent = "{ /* comment */ \"key\": \"value\" }";
+        
+        try (StringReader reader = new StringReader(jsoncContent)) {
+            JsonNode result = mapper.readTree(reader);
+            assertNotNull(result);
+            assertTrue(result.isObject());
+            assertEquals("value", result.get("key").asText());
+        }
+    }
+    
+    @Test
+    public void testReadTreeFromReaderNullValidation() {
+        JsoncMapper mapper = new JsoncMapper();
+        assertThrows(IllegalArgumentException.class, () -> {
+            mapper.readTree((Reader) null);
+        });
+    }
+    
+    @Test
+    public void testReadTreeFromInputStream() throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        String jsoncContent = "{ /* comment */ \"key\": \"value\" }";
+        
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(jsoncContent.getBytes())) {
+            JsonNode result = mapper.readTree(inputStream);
+            assertNotNull(result);
+            assertTrue(result.isObject());
+            assertEquals("value", result.get("key").asText());
+        }
+    }
+    
+    @Test
+    public void testReadTreeFromInputStreamNullValidation() {
+        JsoncMapper mapper = new JsoncMapper();
+        assertThrows(IllegalArgumentException.class, () -> {
+            mapper.readTree((InputStream) null);
+        });
+    }
+    
+    @Test
+    public void testReadTreeFromByteArray() throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        String jsoncContent = "{ /* comment */ \"key\": \"value\" }";
+        byte[] bytes = jsoncContent.getBytes();
+        
+        JsonNode result = mapper.readTree(bytes);
+        assertNotNull(result);
+        assertTrue(result.isObject());
+        assertEquals("value", result.get("key").asText());
+    }
+    
+    @Test
+    public void testReadTreeFromByteArrayNullValidation() {
+        JsoncMapper mapper = new JsoncMapper();
+        assertThrows(IllegalArgumentException.class, () -> {
+            mapper.readTree((byte[]) null);
         });
     }
 
