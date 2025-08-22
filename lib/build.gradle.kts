@@ -7,7 +7,8 @@
 
 plugins {
     `java-library`
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    // Shadow plugin causes Java 21 compatibility issues, using custom fat jar task instead
+    // id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "jp.vemi"
@@ -34,11 +35,46 @@ java {
 }
 
 tasks {
-    shadowJar {
-        relocate("com.fasterxml.jackson", "shadow.com.fasterxml.jackson")
-        archiveFileName.set("${project.name}-${project.version}.jar")  // JARファイル名を設定
-        destinationDirectory.set(file("build/libs"))  // 出力ディレクトリを設定
+    // Custom fat jar task to replace shadowJar for Java 21 compatibility
+    val fatJar = register<Jar>("fatJar") {
+        archiveClassifier.set("all")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        
+        from(sourceSets.main.get().output)
+        
+        from({
+            configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+        }) {
+            exclude("META-INF/*.SF")
+            exclude("META-INF/*.DSA")
+            exclude("META-INF/*.RSA")
+        }
+        
+        archiveFileName.set("${project.name}-${project.version}.jar")
+        destinationDirectory.set(file("build/libs"))
+        
+        manifest {
+            attributes(mapOf(
+                "Implementation-Title" to project.name,
+                "Implementation-Version" to project.version
+            ))
+        }
     }
+    
+    // Keep shadowJar task for backward compatibility but make it depend on fatJar
+    register<Copy>("shadowJar") {
+        dependsOn(fatJar)
+        from(file("build/libs/${project.name}-${project.version}.jar"))
+        into(file("build/libs"))
+        doFirst {
+            // Ensure the source file exists
+            val sourceFile = file("build/libs/${project.name}-${project.version}.jar")
+            if (!sourceFile.exists()) {
+                throw GradleException("Fat JAR not found at ${sourceFile.absolutePath}")
+            }
+        }
+    }
+    
     named<Test>("test") {
         useJUnitPlatform()
     }
