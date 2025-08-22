@@ -64,6 +64,7 @@ tasks {
     // Keep shadowJar task for backward compatibility but make it depend on fatJar
     register<Copy>("shadowJar") {
         dependsOn(fatJar)
+        mustRunAfter("jar") // Ensure jar task completes before this task
         from(file("build/libs/${project.name}-${project.version}.jar"))
         into(file("build/libs"))
         doFirst {
@@ -73,6 +74,10 @@ tasks {
                 throw GradleException("Fat JAR not found at ${sourceFile.absolutePath}")
             }
         }
+    }
+    
+    build {
+        dependsOn(fatJar)
     }
     
     named<Test>("test") {
