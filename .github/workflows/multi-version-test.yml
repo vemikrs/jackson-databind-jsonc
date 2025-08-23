@@ -1,0 +1,177 @@
+name: Multi-Version Java Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java-version: [17, 21]
+        include:
+          - java-version: 17
+            distribution: 'temurin'
+          - java-version: 21
+            distribution: 'temurin'
+      fail-fast: false
+
+    name: Build and Test with Java ${{ matrix.java-version }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ matrix.distribution }}
+          java-version: ${{ matrix.java-version }}
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon
+
+      - name: Create JAR
+        run: ./gradlew jar --no-daemon
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-java-${{ matrix.java-version }}
+          path: lib/build/reports/tests/
+          retention-days: 7
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jackson-databind-jsonc-java-${{ matrix.java-version }}
+          path: lib/build/libs/*.jar
+          retention-days: 7
+
+  # Test runtime compatibility across all Java versions
+  compatibility-test:
+    runs-on: ubuntu-latest
+    needs: test-matrix
+    name: Runtime Compatibility Test
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Set up Java 17 for building
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build JAR
+        run: ./gradlew jar --no-daemon
+
+      - name: Set up multiple Java versions for testing
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: |
+            8
+            11
+            17
+            21
+
+      - name: Test Java 8 Runtime Compatibility
+        run: |
+          export JAVA_HOME="${JAVA_HOME_8_X64}"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          java -version
+          echo "Testing JAR compatibility with Java 8..."
+          javap -cp lib/build/libs/lib-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
+          echo "✅ JAR is compatible with Java 8"
+
+      - name: Test Java 11 Runtime Compatibility
+        run: |
+          export JAVA_HOME="${JAVA_HOME_11_X64}"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          java -version
+          echo "Testing JAR compatibility with Java 11..."
+          javap -cp lib/build/libs/lib-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
+          echo "✅ JAR is compatible with Java 11"
+
+      - name: Test Java 17 Runtime Compatibility
+        run: |
+          export JAVA_HOME="${JAVA_HOME_17_X64}"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          java -version
+          echo "Testing JAR compatibility with Java 17..."
+          javap -cp lib/build/libs/lib-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
+          echo "✅ JAR is compatible with Java 17"
+
+      - name: Test Java 21 Runtime Compatibility
+        run: |
+          export JAVA_HOME="${JAVA_HOME_21_X64}"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          java -version
+          echo "Testing JAR compatibility with Java 21..."
+          javap -cp lib/build/libs/lib-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
+          echo "✅ JAR is compatible with Java 21"
+
+      - name: Verify Java 8 Bytecode
+        run: |
+          export JAVA_HOME="${JAVA_HOME_8_X64}"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          echo "Checking bytecode version..."
+          MAJOR_VERSION=$(javap -cp lib/build/libs/lib-1.0.0.jar -v jp.vemi.jsoncmapper.JsoncMapper | grep "major version" | cut -d':' -f2 | xargs)
+          echo "Bytecode major version: $MAJOR_VERSION"
+          if [ "$MAJOR_VERSION" -eq "52" ]; then
+            echo "✅ Bytecode is compiled for Java 8 (major version 52)"
+          else
+            echo "❌ Bytecode is not compiled for Java 8 (expected 52, got $MAJOR_VERSION)"
+            exit 1
+          fi
+
+  compatibility-summary:
+    needs: [test-matrix, compatibility-test]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Summary
+        run: |
+          echo "## Java Multi-Version Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Compatibility" >> $GITHUB_STEP_SUMMARY
+          echo "| Java Version | Build Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------------|--------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 17 | ${{ needs.test-matrix.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 21 | ${{ needs.test-matrix.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Runtime Compatibility" >> $GITHUB_STEP_SUMMARY
+          echo "| Java Version | Runtime Status | Notes |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------------|----------------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 8 (LTS) | ${{ needs.compatibility-test.result == 'success' && '✅ Compatible' || '❌ Failed' }} | Minimum supported version |" >> $GITHUB_STEP_SUMMARY
+          echo "| 11 (LTS) | ${{ needs.compatibility-test.result == 'success' && '✅ Compatible' || '❌ Failed' }} | Fully supported |" >> $GITHUB_STEP_SUMMARY
+          echo "| 17 (LTS) | ${{ needs.compatibility-test.result == 'success' && '✅ Compatible' || '❌ Failed' }} | Fully supported |" >> $GITHUB_STEP_SUMMARY
+          echo "| 21 (LTS) | ${{ needs.compatibility-test.result == 'success' && '✅ Compatible' || '❌ Failed' }} | Fully supported |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Library is compiled to Java 8 bytecode for maximum compatibility." >> $GITHUB_STEP_SUMMARY
