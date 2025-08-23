@@ -127,4 +127,92 @@ public class SecurityTest {
             }, "Should handle edge case: " + testCase);
         }
     }
+
+    // Security Tests for Trailing Comma Functionality
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    public void testTrailingCommaReDoSProtection() {
+        // Test protection against ReDoS attacks in trailing comma detection
+        StringBuilder maliciousInput = new StringBuilder("{ \"key\": \"value\"");
+        
+        // Create a string with many commas that could cause catastrophic backtracking
+        for (int i = 0; i < 1000; i++) {
+            maliciousInput.append(",,,");
+        }
+        maliciousInput.append(" }");
+        
+        // This should complete quickly, not hang
+        String result = JsoncUtils.removeTrailingCommas(maliciousInput.toString());
+        assertNotNull(result);
+    }
+
+    @Test
+    @Timeout(value = 3, unit = TimeUnit.SECONDS)
+    public void testCombinedReDoSProtection() {
+        // Test protection against ReDoS attacks in combined processing
+        StringBuilder maliciousInput = new StringBuilder("/*");
+        
+        // Create a pathological case with many nested patterns
+        for (int i = 0; i < 500; i++) {
+            maliciousInput.append("/* comment ").append(i).append(" */,");
+        }
+        maliciousInput.append("*/ { \"key\": \"value\", }");
+        
+        // This should complete quickly, not hang
+        String result = JsoncUtils.removeCommentsAndTrailingCommas(maliciousInput.toString());
+        assertNotNull(result);
+    }
+
+    @Test
+    public void testTrailingCommaStringProtection() {
+        // Ensure commas inside strings are never treated as trailing commas
+        String jsonc = "{ \"malicious\": \"} ],\" , }";
+        String expected = "{ \"malicious\": \"} ],\"  }";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testTrailingCommaWithMaliciousStrings() {
+        // Test with strings that contain JSON-like structure
+        String jsonc = "{ \"fake_json\": \"{ \\\"inner\\\": \\\"value\\\", }\", }";
+        String expected = "{ \"fake_json\": \"{ \\\"inner\\\": \\\"value\\\", }\" }";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    @Timeout(value = 2, unit = TimeUnit.SECONDS)
+    public void testTrailingCommaVeryLongString() {
+        // Test performance with very long strings containing commas
+        StringBuilder longString = new StringBuilder("{ \"data\": \"");
+        for (int i = 0; i < 10000; i++) {
+            longString.append("text,with,commas,");
+        }
+        longString.append("\", }");
+        
+        String result = JsoncUtils.removeTrailingCommas(longString.toString());
+        assertNotNull(result);
+        assertTrue(result.endsWith("\" }"));
+    }
+
+    @Test
+    public void testTrailingCommaDeepNesting() {
+        // Test with deeply nested structures to ensure O(n) performance
+        StringBuilder deeplyNested = new StringBuilder();
+        int depth = 100;
+        
+        // Create deep nesting
+        for (int i = 0; i < depth; i++) {
+            deeplyNested.append("{ \"level").append(i).append("\": ");
+        }
+        deeplyNested.append("\"value\"");
+        for (int i = 0; i < depth; i++) {
+            deeplyNested.append(", }");
+        }
+        
+        String result = JsoncUtils.removeTrailingCommas(deeplyNested.toString());
+        assertNotNull(result);
+        assertFalse(result.contains(", }"));
+    }
 }
