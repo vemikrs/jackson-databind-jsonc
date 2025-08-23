@@ -7,7 +7,7 @@
 
 plugins {
     // Apply the foojay-resolver plugin to allow automatic download of JDKs
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+    // This plugin requires Java 17+ to run
 }
 
 rootProject.name = "jackson-databind-jasonc"
