@@ -6,6 +6,27 @@ This project extends Jackson's `JsonMapper` by adding a new `JsoncMapper` to han
 
 - Supports JSONC format
 - Extends Jackson's `JsonMapper`
+- Multi-version Java support (Java 8, 11, 17, 21, 24)
+
+## Requirements
+
+### Java Version Support
+
+This library supports multiple Java versions:
+
+- **Java 8** (LTS) - Minimum required version
+- **Java 11** (LTS) - Fully supported
+- **Java 17** (LTS) - Fully supported  
+- **Java 21** (LTS) - Fully supported
+- **Java 24** - Supported (when available)
+
+The library is compiled to Java 8 bytecode for maximum compatibility while being built and tested across all supported Java versions.
+
+### Testing Approach
+
+- **Build Testing**: The project is built and tested with Java 17+ (required by Gradle)
+- **Runtime Compatibility**: The generated JAR is tested for compatibility with Java 8+
+- **Bytecode Target**: All classes are compiled with Java 8 bytecode (major version 52)
 
 ## Installation
 

@@ -28,9 +28,10 @@ dependencies {
 }
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
+    // Set target compatibility to Java 8 for maximum compatibility
+    // This allows the library to run on Java 8+ while being built with Java 17+
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 tasks {

@@ -21,11 +21,11 @@ jobs:
       - name: Set execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Set up JDK 21
+      - name: Set up JDK 17 (for building)
         uses: actions/setup-java@v5
         with:
-          distribution: 'adopt'
-          java-version: '21'
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Build with Gradle
         run: ./gradlew build
