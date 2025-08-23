@@ -568,10 +568,6 @@ public class JsoncMapperTest {
                 .build();
         
         String jsoncWithTrailingCommas = "[ \"item1\", \"item2\", ]";
-        String processed = JsoncUtils.removeCommentsAndTrailingCommas(jsoncWithTrailingCommas);
-        System.out.println("DEBUG: Original: '" + jsoncWithTrailingCommas + "'");
-        System.out.println("DEBUG: Processed: '" + processed + "'");
-        
         TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {};
         List<String> result = mapper.readValue(jsoncWithTrailingCommas, typeRef);
         assertEquals(2, result.size());
