@@ -1,53 +1,55 @@
+言語: 日本語 | [English](./README_en.md)
+
 # Jackson-Databind-Jsonc
 
-This project extends Jackson's `JsonMapper` by adding a new `JsoncMapper` to handle JSONC (JSON with Comments) format.
+このプロジェクトは、Jackson の `JsonMapper` を拡張し、JSONC（コメント付きJSON）を扱える `JsoncMapper` を提供します。
 
-## Features
+## 特長
 
-- Supports JSONC format with block comments (`/* */`) and end-of-line comments (`//`)
-- Extends Jackson's `JsonMapper`
-- Multi-version Java support (Java 8, 11, 17, 21, 24)
-- Dual distribution strategy for different deployment scenarios
+- JSONC 形式をサポート（ブロックコメント `/* */` と 行末コメント `//`）
+- Jackson の `JsonMapper` を拡張
+- 複数の Java バージョンをサポート（Java 8, 11, 17, 21, 24）
+- 利用シーンに応じた 2 つの配布形式を提供
 
-## Requirements
+## 要件
 
-### Java Version Support
+### Java バージョン対応
 
-This library supports multiple Java versions:
+本ライブラリは次の Java バージョンをサポートします。
 
-- **Java 8** (LTS) - Minimum required version
-- **Java 11** (LTS) - Fully supported
-- **Java 17** (LTS) - Fully supported  
-- **Java 21** (LTS) - Fully supported
-- **Java 24** - Supported (when available)
+- Java 8（LTS）: 最低要件
+- Java 11（LTS）: フル対応
+- Java 17（LTS）: フル対応
+- Java 21（LTS）: フル対応
+- Java 24: 利用可能（リリース後）
 
-The library is compiled to Java 8 bytecode for maximum compatibility while being built and tested across all supported Java versions.
+最大互換性のため、バイトコードは Java 8（major version 52）でコンパイルされ、すべてのサポート対象 Java でビルド・テストされます。
 
-### Testing Approach
+### テスト方針
 
-- **Build Testing**: The project is built and tested with Java 17+ (required by Gradle)
-- **Runtime Compatibility**: The generated JAR is tested for compatibility with Java 8+
-- **Bytecode Target**: All classes are compiled with Java 8 bytecode (major version 52)
+- ビルドテスト: Gradle（Java 17+が必要）でビルド・テスト
+- 実行時互換性: 生成された JAR は Java 8+ で動作確認
+- バイトコード: すべてのクラスを Java 8 バイトコードでコンパイル
 
-## Distribution Options
+## 配布形式
 
-This library provides two distribution formats to meet different environment requirements:
+さまざまな環境要件に対応するため、2 つの配布形式を提供します。
 
-### Slim JAR (Recommended)
-- **File**: `lib-1.0.0.jar` (~5KB)
-- **Use Case**: Modern Jackson environments, Maven/Gradle projects
-- **Dependencies**: Requires Jackson 2.18.4+
-- **Benefits**: Lightweight, flexible dependency management
+### Slim JAR（推奨）
+- ファイル: `lib-1.0.0.jar`（約 5KB）
+- 用途: モダンな Jackson 環境、Maven/Gradle プロジェクト
+- 依存関係: Jackson 2.18.4+ が必要
+- 特徴: 軽量で依存関係管理が柔軟
 
-### All-in-One JAR (Enterprise)
-- **File**: `lib-1.0.0-all.jar` (~7.8MB) 
-- **Use Case**: Enterprise Java applications, legacy environments, dependency conflict avoidance
-- **Dependencies**: Self-contained (Jackson included)
-- **Benefits**: Single file deployment, no dependency conflicts
+### All-in-One JAR（エンタープライズ）
+- ファイル: `lib-1.0.0-all.jar`（約 7.8MB）
+- 用途: エンタープライズ Java アプリ、レガシー環境、依存関係競合回避
+- 依存関係: 自己完結（Jackson 同梱）
+- 特徴: 単一ファイル配布、依存関係競合なし
 
-## Installation
+## インストール
 
-### Maven Dependency (Slim JAR)
+### Maven（Slim JAR）
 ```xml
 <dependency>
     <groupId>jp.vemi</groupId>
@@ -56,40 +58,40 @@ This library provides two distribution formats to meet different environment req
 </dependency>
 ```
 
-### Gradle Dependency (Slim JAR)
+### Gradle（Slim JAR）
 ```groovy
 implementation 'jp.vemi:jackson-databind-jsonc:1.0.0'
 ```
 
-### Manual Installation
-1. Download the appropriate JAR file from the [releases page](https://github.com/vemic/jackson-databind-jsonc/releases)
-2. Add the JAR file to your project's classpath
+### 手動インストール
+1. [Releases ページ](https://github.com/vemic/jackson-databind-jsonc/releases) から JAR をダウンロード
+2. プロジェクトのクラスパスに追加
 
-## When to Use Which JAR
+## どちらの JAR を使うべきか
 
-### Choose Slim JAR when:
-✅ Jackson 2.18.x+ is available  
-✅ Dependency management is possible (Maven/Gradle)  
-✅ No conflicts with other libraries  
-✅ Minimal JAR size is desired  
+### Slim JAR を選ぶ場合
+- ✅ Jackson 2.18.x+ を利用可能
+- ✅ 依存関係を Maven/Gradle で管理できる
+- ✅ 他ライブラリとの競合がない
+- ✅ JAR サイズを最小化したい
 
-### Choose All-in-One JAR when:
-✅ Enterprise Java application environment  
-✅ Legacy Jackson versions are fixed  
-✅ Dependency conflicts need to be avoided  
-✅ Single JAR deployment is required  
-✅ Complex dependency management should be avoided  
+### All-in-One JAR を選ぶ場合
+- ✅ エンタープライズ Java アプリケーション環境
+- ✅ 既存の Jackson バージョンが固定されている
+- ✅ 依存関係の競合を避けたい
+- ✅ 単一 JAR 配布が必要
+- ✅ 複雑な依存関係管理を避けたい
 
-## Usage
+## 使い方
 
-### Basic Usage (Both JARs)
+### 基本的な使用方法（両 JAR 共通）
 ```java
 import jp.vemi.jsoncmapper.JsoncMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 public class Example {
     public static void main(String[] args) {
-        // JSONC supports both block comments and end-of-line comments
+        // JSONC はブロックコメントと行末コメントの両方をサポート
         String jsonWithComments = """
             {
                 /* Block comment */
@@ -109,7 +111,7 @@ public class Example {
 }
 ```
 
-### Spring Boot Environment (Slim JAR)
+### Spring Boot 環境（Slim JAR）
 ```java
 import jp.vemi.jsoncmapper.JsoncMapper;
 
@@ -124,7 +126,7 @@ public class ModernJsoncProcessor {
 }
 ```
 
-### Enterprise Java Application Environment (All-in-One JAR)
+### エンタープライズ Java アプリケーション（All-in-One JAR）
 ```java
 import jp.vemi.jsoncmapper.JsoncMapper;
 
@@ -138,28 +140,28 @@ public class IntraMartJsoncProcessor {
 }
 ```
 
-## Environment-Specific Recommendations
+## 環境別の推奨
 
-### Modern Spring Boot
-- **Recommended**: Slim JAR
-- **Reason**: Spring Boot manages latest Jackson
+### モダンな Spring Boot
+- 推奨: Slim JAR
+- 理由: Spring Boot が最新の Jackson を管理
 
-### Traditional Web Application Servers  
-- **Recommended**: All-in-One JAR
-- **Reason**: Avoids conflicts with server-side Jackson
+### 従来型 Web アプリケーションサーバ
+- 推奨: All-in-One JAR
+- 理由: サーバ側 Jackson との競合を回避
 
-### Enterprise Java Application Environment
-- **Recommended**: All-in-One JAR  
-- **Reason**: Enterprise platforms often fix specific Jackson versions
+### エンタープライズ Java 環境
+- 推奨: All-in-One JAR
+- 理由: 固定バージョンの Jackson を利用するケースが多い
 
-### Microservices
-- **Recommended**: Slim JAR
-- **Reason**: Container size optimization and dependency injection
+### マイクロサービス
+- 推奨: Slim JAR
+- 理由: コンテナサイズ最適化と依存性注入
 
-## Development
+## 開発
 
-### Building and Testing
-This project uses Gradle for building and testing. Java 21 is required.
+### ビルドとテスト
+本プロジェクトは Gradle を使用します。ビルドには Java 21 が必要です。
 
 ```bash
 # Build the project
@@ -174,75 +176,40 @@ This project uses Gradle for building and testing. Java 21 is required.
 ./gradlew test --tests "jp.vemi.jsoncmapper.JsoncMapperTest"
 ```
 
-### GitHub Workflows
+### GitHub ワークフロー
 
-#### PR Test Execution
-The repository includes an optional test execution workflow that can be triggered manually or automatically on PR events.
+#### PR テスト実行
+手動または PR イベントで実行できるテスト実行ワークフローを含みます。
 
-**Manual Execution:**
-1. Go to Actions tab in GitHub
-2. Select "PR Test Execution" workflow
-3. Click "Run workflow"
-4. Configure options:
-   - **Test Scope**: Choose from `all`, `unit-only`, `security-only`, or `integration-only`
-   - **Run Build**: Enable/disable full build before tests
-   - **PR Number**: Optionally specify a PR number to test
+【手動実行】
+1. GitHub の Actions タブへ
+2. "PR Test Execution" ワークフローを選択
+3. "Run workflow" をクリック
+4. オプションを設定:
+   - Test Scope: `all`, `unit-only`, `security-only`, `integration-only`
+   - Run Build: テスト前にビルドを実行するか
+   - PR Number: テスト対象の PR を指定可能（任意）
 
-**Automatic Execution:**
-The workflow automatically runs on PR events (opened, synchronize, ready_for_review) with full test scope.
+【自動実行】
+PR の opened/synchronize/ready_for_review で自動的に実行（フルスコープ）
 
-**Features:**
-- Selective test execution by scope
-- Detailed test results with summaries
-- PR comments with test results
-- Gradle caching for faster execution
-- Timeout protection (10 minutes max)
+【特徴】
+- スコープ別の選択実行
+- 詳細なテスト結果とサマリー
+- PR への結果コメント
+- Gradle のキャッシュによる高速化
+- タイムアウト保護（最大 10 分）
 
-## Troubleshooting
+## トラブルシューティング
 
-### Dependency Conflict Errors
-1. Switch to All-in-One JAR
-2. Or use exclusion settings to resolve Jackson conflicts
+### 依存関係の競合
+1. All-in-One JAR に切替
+2. もしくは除外設定で Jackson の競合を解消
 
 ### ClassNotFoundException
-1. Slim JAR: Verify Jackson 2.18.4 dependency
-2. All-in-One JAR: Verify JAR is in classpath
+1. Slim JAR: Jackson 2.18.4 依存を確認
+2. All-in-One JAR: JAR が classpath にあるか確認
 
-### Performance Considerations
-- Slim JAR: Optimized startup time
-- All-in-One JAR: Slightly increased memory usage possible
-
----
-
-# 使用ガイド (Japanese)
-
-## 配布形式
-
-このライブラリは、異なる環境のニーズに対応するため、2つの配布形式を提供しています。
-
-### Slim JAR（推奨）
-- **ファイル**: `lib-1.0.0.jar` （約5KB）
-- **用途**: 最新Jackson環境、Maven/Gradleプロジェクト
-- **依存関係**: Jackson 2.18.4が必要
-- **特徴**: 軽量で依存関係の管理が柔軟
-
-### All-in-One JAR（エンタープライズ向け）
-- **ファイル**: `lib-1.0.0-all.jar` （約7.8MB）
-- **用途**: エンタープライズJavaアプリケーション、レガシー環境、依存関係競合回避
-- **依存関係**: 自己完結（Jackson内蔵）
-- **特徴**: 単一ファイルで完全に動作、依存関係競合なし
-
-## エンタープライズ環境での選択指針
-
-### Slim JARを選ぶ場合
-✅ Jackson 2.18.x以上が使用可能  
-✅ 依存関係管理が可能（Maven/Gradle）  
-✅ 他ライブラリとの競合がない  
-✅ JAR サイズを最小限に抑えたい  
-
-### All-in-One JARを選ぶ場合
-✅ エンタープライズJavaアプリケーション環境  
-✅ 古いJacksonバージョンが固定されている環境  
-✅ 依存関係競合を避けたい  
-✅ 単一JARでの配布が必要  
-✅ 複雑な依存関係管理を避けたい
+### パフォーマンスの考慮事項
+- Slim JAR: 起動時間に有利
+- All-in-One JAR: メモリ使用量がわずかに増える場合あり
