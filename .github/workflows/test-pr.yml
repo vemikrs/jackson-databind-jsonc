@@ -1,0 +1,193 @@
+name: "PR Test Execution"
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: 'Test execution scope'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'unit-only'
+          - 'security-only'
+          - 'integration-only'
+      run_build:
+        description: 'Run full build before tests'
+        required: false
+        default: true
+        type: boolean
+      pr_number:
+        description: 'PR number to test (optional)'
+        required: false
+        type: string
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    branches: [ "main", "master" ]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  test:
+    name: "Execute Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          # If PR number is provided via workflow_dispatch, checkout that PR
+          ref: ${{ github.event.inputs.pr_number && format('refs/pull/{0}/head', github.event.inputs.pr_number) || github.ref }}
+
+      - name: Set execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Run build (if requested)
+        if: ${{ github.event.inputs.run_build == 'true' || github.event_name == 'pull_request' }}
+        run: |
+          echo "🔨 Running full build..."
+          ./gradlew clean build --no-daemon
+          echo "✅ Build completed successfully"
+
+      - name: Run all tests
+        if: ${{ github.event.inputs.test_scope == 'all' || github.event_name == 'pull_request' || github.event.inputs.test_scope == '' }}
+        run: |
+          echo "🧪 Running all tests..."
+          ./gradlew test --no-daemon --info
+          echo "✅ All tests completed"
+
+      - name: Run unit tests only
+        if: ${{ github.event.inputs.test_scope == 'unit-only' }}
+        run: |
+          echo "🧪 Running unit tests (JsoncUtilsTest)..."
+          ./gradlew test --tests "jp.vemi.jsoncmapper.JsoncUtilsTest" --no-daemon --info
+          echo "✅ Unit tests completed"
+
+      - name: Run security tests only
+        if: ${{ github.event.inputs.test_scope == 'security-only' }}
+        run: |
+          echo "🔒 Running security tests..."
+          ./gradlew test --tests "jp.vemi.jsoncmapper.SecurityTest" --no-daemon --info
+          echo "✅ Security tests completed"
+
+      - name: Run integration tests only
+        if: ${{ github.event.inputs.test_scope == 'integration-only' }}
+        run: |
+          echo "🔗 Running integration tests (JsoncMapperTest)..."
+          ./gradlew test --tests "jp.vemi.jsoncmapper.JsoncMapperTest" --no-daemon --info
+          echo "✅ Integration tests completed"
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Test Results
+          path: 'lib/build/test-results/test/*.xml'
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Generate test report summary
+        if: always()
+        run: |
+          echo "## 📊 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "lib/build/test-results/test/TEST-jp.vemi.jsoncmapper.JsoncUtilsTest.xml" ]; then
+            UTILS_TESTS=$(grep -o 'tests="[0-9]*"' lib/build/test-results/test/TEST-jp.vemi.jsoncmapper.JsoncUtilsTest.xml | grep -o '[0-9]*')
+            UTILS_FAILURES=$(grep -o 'failures="[0-9]*"' lib/build/test-results/test/TEST-jp.vemi.jsoncmapper.JsoncUtilsTest.xml | grep -o '[0-9]*')
+            echo "- **JsoncUtilsTest**: $UTILS_TESTS tests, $UTILS_FAILURES failures" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f "lib/build/test-results/test/TEST-jp.vemi.jsoncmapper.SecurityTest.xml" ]; then
+            SECURITY_TESTS=$(grep -o 'tests="[0-9]*"' lib/build/test-results/test/TEST-jp.vemi.jsoncmapper.SecurityTest.xml | grep -o '[0-9]*')
+            SECURITY_FAILURES=$(grep -o 'failures="[0-9]*"' lib/build/test-results/test/TEST-jp.vemi.jsoncmapper.SecurityTest.xml | grep -o '[0-9]*')
+            echo "- **SecurityTest**: $SECURITY_TESTS tests, $SECURITY_FAILURES failures" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f "lib/build/test-results/test/TEST-jp.vemi.jsoncmapper.JsoncMapperTest.xml" ]; then
+            MAPPER_TESTS=$(grep -o 'tests="[0-9]*"' lib/build/test-results/test/TEST-jp.vemi.jsoncmapper.JsoncMapperTest.xml | grep -o '[0-9]*')
+            MAPPER_FAILURES=$(grep -o 'failures="[0-9]*"' lib/build/test-results/test/TEST-jp.vemi.jsoncmapper.JsoncMapperTest.xml | grep -o '[0-9]*')
+            echo "- **JsoncMapperTest**: $MAPPER_TESTS tests, $MAPPER_FAILURES failures" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration Used" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Scope**: ${{ github.event.inputs.test_scope || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run Build**: ${{ github.event.inputs.run_build || 'true' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ github.event.inputs.pr_number }}" ]; then
+            echo "- **PR Number**: #${{ github.event.inputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            let comment = '## 🧪 Test Execution Results\n\n';
+            
+            try {
+              // Read test results
+              const testResultsDir = 'lib/build/test-results/test';
+              const files = fs.readdirSync(testResultsDir);
+              
+              let totalTests = 0;
+              let totalFailures = 0;
+              
+              files.forEach(file => {
+                if (file.startsWith('TEST-') && file.endsWith('.xml')) {
+                  const content = fs.readFileSync(path.join(testResultsDir, file), 'utf8');
+                  const tests = content.match(/tests="(\d+)"/)?.[1] || '0';
+                  const failures = content.match(/failures="(\d+)"/)?.[1] || '0';
+                  const className = file.replace('TEST-', '').replace('.xml', '').split('.').pop();
+                  
+                  totalTests += parseInt(tests);
+                  totalFailures += parseInt(failures);
+                  
+                  const status = parseInt(failures) === 0 ? '✅' : '❌';
+                  comment += `- ${status} **${className}**: ${tests} tests, ${failures} failures\n`;
+                }
+              });
+              
+              comment += `\n**Total**: ${totalTests} tests, ${totalFailures} failures\n\n`;
+              
+              if (totalFailures === 0) {
+                comment += '🎉 All tests passed successfully!';
+              } else {
+                comment += '⚠️ Some tests failed. Please review the results.';
+              }
+              
+            } catch (error) {
+              comment += '❌ Failed to read test results: ' + error.message;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

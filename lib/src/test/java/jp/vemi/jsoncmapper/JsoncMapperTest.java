@@ -1,6 +1,7 @@
 package jp.vemi.jsoncmapper;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -14,6 +15,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class JsoncMapperTest {
     @Test
@@ -431,6 +433,107 @@ public class JsoncMapperTest {
         assertThrows(IllegalArgumentException.class, () -> {
             mapper.readTree((byte[]) null);
         });
+    }
+
+    // Additional Integration Tests
+    @Test
+    public void testReadValueWithCommentsInArray() throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        String jsonc = "{ \"items\": [ /* comment */ \"item1\", /* another */ \"item2\" ] }";
+        
+        JsonNode result = mapper.readTree(jsonc);
+        assertNotNull(result);
+        assertTrue(result.has("items"));
+        assertTrue(result.get("items").isArray());
+        assertEquals(2, result.get("items").size());
+        assertEquals("item1", result.get("items").get(0).asText());
+        assertEquals("item2", result.get("items").get(1).asText());
+    }
+
+    @Test
+    public void testReadValueWithComplexNesting() throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        String jsonc = "{\n" +
+                "    /* root comment */\n" +
+                "    \"data\": {\n" +
+                "        /* nested comment */\n" +
+                "        \"users\": [\n" +
+                "            /* array comment */\n" +
+                "            {\n" +
+                "                /* object comment */\n" +
+                "                \"name\": \"John\",\n" +
+                "                \"age\": 30\n" +
+                "            }\n" +
+                "        ]\n" +
+                "    }\n" +
+                "}";
+        
+        JsonNode result = mapper.readTree(jsonc);
+        assertNotNull(result);
+        assertEquals("John", result.get("data").get("users").get(0).get("name").asText());
+        assertEquals(30, result.get("data").get("users").get(0).get("age").asInt());
+    }
+
+    @Test
+    public void testReadValueWithUnicodeComments() throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        String jsonc = "{ /* 日本語コメント */ \"名前\": \"値\", /* 🎉 emoji comment */ \"emoji\": \"🌟\" }";
+        
+        JsonNode result = mapper.readTree(jsonc);
+        assertNotNull(result);
+        assertEquals("値", result.get("名前").asText());
+        assertEquals("🌟", result.get("emoji").asText());
+    }
+
+    @Test
+    @Timeout(value = 2, unit = TimeUnit.SECONDS)
+    public void testReadValuePerformanceWithManyComments() throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        StringBuilder jsonc = new StringBuilder("{ ");
+        
+        for (int i = 0; i < 100; i++) {
+            jsonc.append("/* comment ").append(i).append(" */ ");
+            jsonc.append("\"key").append(i).append("\": \"value").append(i).append("\"");
+            if (i < 99) {
+                jsonc.append(", ");
+            }
+        }
+        jsonc.append(" }");
+        
+        JsonNode result = mapper.readTree(jsonc.toString());
+        assertNotNull(result);
+        assertEquals(100, result.size());
+        assertEquals("value50", result.get("key50").asText());
+    }
+
+    @Test
+    public void testReadValueWithCommentsAndStringEscapes() throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        String jsonc = "{ /* comment */ \"escaped\": \"He said \\\"/* not removed */\\\" today\" }";
+        
+        JsonNode result = mapper.readTree(jsonc);
+        assertNotNull(result);
+        assertEquals("He said \"/* not removed */\" today", result.get("escaped").asText());
+    }
+
+    @Test
+    public void testReadValueEmptyComments() throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        String jsonc = "{ /**/ \"key\": \"value\" /**/ }";
+        
+        JsonNode result = mapper.readTree(jsonc);
+        assertNotNull(result);
+        assertEquals("value", result.get("key").asText());
+    }
+
+    @Test
+    public void testReadValueConsecutiveComments() throws Exception {
+        JsoncMapper mapper = new JsoncMapper();
+        String jsonc = "{ /* first *//* second *//* third */ \"key\": \"value\" }";
+        
+        JsonNode result = mapper.readTree(jsonc);
+        assertNotNull(result);
+        assertEquals("value", result.get("key").asText());
     }
 
     static class MyClass {
