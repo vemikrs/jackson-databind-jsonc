@@ -31,11 +31,55 @@ public class JsoncUtilsTest {
         assertEquals(expected, result);
     }
 
-    // @Test
-    // End of line comments are not supported (will delete the rest of the line)
+    @Test
     public void testEndOfLineComments() {
         String jsonc = "{ \"key\": \"value\" // comment \n }";
         String expected = "{ \"key\": \"value\" \n }";
+        String result = JsoncUtils.removeComments(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testEndOfLineCommentsWithNewlinePreservation() {
+        // Verify that newlines after line comments are preserved
+        String jsonc = "{ \"key1\": \"value1\", // first comment\n  \"key2\": \"value2\" // second comment\n}";
+        String expected = "{ \"key1\": \"value1\", \n  \"key2\": \"value2\" \n}";
+        String result = JsoncUtils.removeComments(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testMultipleLineCommentsAcrossLines() {
+        // Test multiple line comments on different lines
+        String jsonc = "{\n  \"key1\": \"value1\", // comment 1\n  \"key2\": \"value2\", // comment 2\n  \"key3\": \"value3\" // comment 3\n}";
+        String expected = "{\n  \"key1\": \"value1\", \n  \"key2\": \"value2\", \n  \"key3\": \"value3\" \n}";
+        String result = JsoncUtils.removeComments(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testLineCommentsInsideStrings() {
+        // Comments inside strings should NOT be removed - they are part of the string content
+        String jsonc = "{ \"message\": \"This // is not a comment but part of the string\" }";
+        String expected = "{ \"message\": \"This // is not a comment but part of the string\" }";
+        String result = JsoncUtils.removeComments(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testLineCommentAtEndOfFile() {
+        // Test line comment at the very end of the file without newline
+        String jsonc = "{ \"key\": \"value\" } // final comment";
+        String expected = "{ \"key\": \"value\" } ";
+        String result = JsoncUtils.removeComments(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testLineCommentWithCarriageReturn() {
+        // Test line comment ending with \r\n (Windows style)
+        String jsonc = "{ \"key\": \"value\" // comment\r\n }";
+        String expected = "{ \"key\": \"value\" \r\n }";
         String result = JsoncUtils.removeComments(jsonc);
         assertEquals(expected, result);
     }

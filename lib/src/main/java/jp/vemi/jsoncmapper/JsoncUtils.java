@@ -7,6 +7,10 @@ public class JsoncUtils {
      * This implementation protects against ReDoS attacks and properly handles comments
      * inside strings.
      * 
+     * Supported comment formats:
+     * - Block comments: /* comment &#42;/
+     * - End-of-line comments: &#47;&#47; comment
+     * 
      * @param jsonc JSON with comments string
      * @return JSON string with comments removed
      * @throws IllegalArgumentException if input is null

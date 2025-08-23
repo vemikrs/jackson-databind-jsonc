@@ -4,7 +4,7 @@ This project extends Jackson's `JsonMapper` by adding a new `JsoncMapper` to han
 
 ## Features
 
-- Supports JSONC format
+- Supports JSONC format with block comments (`/* */`) and end-of-line comments (`//`)
 - Extends Jackson's `JsonMapper`
 - Multi-version Java support (Java 8, 11, 17, 21, 24)
 - Dual distribution strategy for different deployment scenarios
@@ -89,7 +89,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 public class Example {
     public static void main(String[] args) {
-        String jsonWithComments = "/* This is a comment */ { \"key\": \"value\" }";
+        // JSONC supports both block comments and end-of-line comments
+        String jsonWithComments = """
+            {
+                /* Block comment */
+                "name": "example", // End-of-line comment
+                "value": 42
+            }
+            """;
         JsoncMapper mapper = new JsoncMapper();
         
         try {

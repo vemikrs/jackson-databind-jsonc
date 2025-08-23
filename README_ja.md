@@ -4,7 +4,7 @@
 
 ## 特徴
 
-- JSONC形式をサポート
+- ブロックコメント（`/* */`）および行末コメント（`//`）をサポートするJSONC形式
 - Jacksonの `JsonMapper` を拡張
 - マルチバージョンJavaサポート（Java 8, 11, 17, 21, 24）
 
@@ -64,7 +64,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 public class Example {
     public static void main(String[] args) {
-        String jsonWithComments = "/* これはコメントです */ { \"key\": \"value\" }";
+        // JSONCはブロックコメントと行末コメントの両方をサポートします
+        String jsonWithComments = """
+            {
+                /* ブロックコメント */
+                "name": "example", // 行末コメント
+                "value": 42
+            }
+            """;
         JsoncMapper mapper = new JsoncMapper();
         
         try {
