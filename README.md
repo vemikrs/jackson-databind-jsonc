@@ -20,7 +20,7 @@ This library provides two distribution formats to meet different environment req
 
 ### All-in-One JAR (Enterprise)
 - **File**: `lib-1.0.0-all.jar` (~7.8MB) 
-- **Use Case**: intra-mart, legacy environments, dependency conflict avoidance
+- **Use Case**: Enterprise Java applications, legacy environments, dependency conflict avoidance
 - **Dependencies**: Self-contained (Jackson included)
 - **Benefits**: Single file deployment, no dependency conflicts
 
@@ -53,7 +53,7 @@ implementation 'jp.vemi:jackson-databind-jsonc:1.0.0'
 ✅ Minimal JAR size is desired  
 
 ### Choose All-in-One JAR when:
-✅ intra-mart environment  
+✅ Enterprise Java application environment  
 ✅ Legacy Jackson versions are fixed  
 ✅ Dependency conflicts need to be avoided  
 ✅ Single JAR deployment is required  
@@ -96,7 +96,7 @@ public class ModernJsoncProcessor {
 }
 ```
 
-### intra-mart Environment (All-in-One JAR)
+### Enterprise Java Application Environment (All-in-One JAR)
 ```java
 import jp.vemi.jsoncmapper.JsoncMapper;
 
@@ -120,9 +120,9 @@ public class IntraMartJsoncProcessor {
 - **Recommended**: All-in-One JAR
 - **Reason**: Avoids conflicts with server-side Jackson
 
-### intra-mart Environment
+### Enterprise Java Application Environment
 - **Recommended**: All-in-One JAR  
-- **Reason**: intra-mart fixes specific Jackson versions
+- **Reason**: Enterprise platforms often fix specific Jackson versions
 
 ### Microservices
 - **Recommended**: Slim JAR
@@ -158,7 +158,7 @@ public class IntraMartJsoncProcessor {
 
 ### All-in-One JAR（エンタープライズ向け）
 - **ファイル**: `lib-1.0.0-all.jar` （約7.8MB）
-- **用途**: intra-mart、レガシー環境、依存関係競合回避
+- **用途**: エンタープライズJavaアプリケーション、レガシー環境、依存関係競合回避
 - **依存関係**: 自己完結（Jackson内蔵）
 - **特徴**: 単一ファイルで完全に動作、依存関係競合なし
 
@@ -171,7 +171,7 @@ public class IntraMartJsoncProcessor {
 ✅ JAR サイズを最小限に抑えたい  
 
 ### All-in-One JARを選ぶ場合
-✅ intra-mart環境  
+✅ エンタープライズJavaアプリケーション環境  
 ✅ 古いJacksonバージョンが固定されている環境  
 ✅ 依存関係競合を避けたい  
 ✅ 単一JARでの配布が必要  
