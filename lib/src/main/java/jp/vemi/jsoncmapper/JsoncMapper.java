@@ -603,6 +603,14 @@ public class JsoncMapper extends JsonMapper {
         String json = JsoncUtils.removeComments(contentStr);
         return super.readTree(json);
     }
+    
+    /**
+     * Helper method to read a File to String.
+     *
+     * @param file the File to read
+     * @return the contents of the file as a String
+     * @throws IOException if an I/O error occurs
+     */
     private String readFileToString(File file) throws IOException {
         try (FileInputStream fis = new FileInputStream(file);
              InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
