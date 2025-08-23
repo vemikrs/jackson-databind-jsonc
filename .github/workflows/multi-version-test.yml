@@ -35,7 +35,7 @@ jobs:
           java-version: ${{ matrix.java-version }}
 
       - name: Cache Gradle packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -54,7 +54,7 @@ jobs:
         run: ./gradlew jar --no-daemon
 
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results-java-${{ matrix.java-version }}
@@ -62,7 +62,7 @@ jobs:
           retention-days: 7
 
       - name: Upload JAR artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: jackson-databind-jsonc-java-${{ matrix.java-version }}
           path: lib/build/libs/*.jar
