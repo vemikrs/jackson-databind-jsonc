@@ -24,9 +24,6 @@ dependencies {
     // テスト依存
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-
-    api(libs.commons.math3)
-    implementation(libs.guava)
 }
 
 java {
@@ -50,16 +47,19 @@ tasks {
         }
     }
     
-    // Fat JAR（エンタープライズ環境向け）- すべての依存関係を含む自己完結型
-    val fatJar = register<Jar>("fatJar") {
+    // All-in-One JAR（エンタープライズ環境向け）- Jackson関連のみ含む最小限の自己完結型
+    val shadowJar = register<Jar>("shadowJar") {
         archiveClassifier.set("all")
         archiveFileName.set("${project.name}-${project.version}-all.jar")
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         
         from(sourceSets.main.get().output)
         
+        // Jackson関連のみ含める（Guava, Commons-Mathは除外）
         from({
-            configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+            configurations.runtimeClasspath.get()
+                .filter { it.name.contains("jackson") && it.name.endsWith("jar") }
+                .map { zipTree(it) }
         }) {
             exclude("META-INF/*.SF")
             exclude("META-INF/*.DSA")
@@ -78,16 +78,9 @@ tasks {
         }
     }
     
-    // shadowJar タスクのエイリアス（後方互換性のため）
-    register<Task>("shadowJar") {
-        dependsOn(fatJar)
-        group = "shadow"
-        description = "Alias for fatJar task (backward compatibility)"
-    }
-    
     // 両方をビルド
     build {
-        dependsOn(fatJar)
+        dependsOn(shadowJar)
     }
     
     named<Test>("test") {
@@ -129,7 +122,7 @@ publishing {
         }
         
         create<MavenPublication>("fatJar") {
-            artifact(tasks.named("fatJar").get())
+            artifact(tasks.named("shadowJar").get())
             artifactId = "${project.name}-all"
             
             pom {
