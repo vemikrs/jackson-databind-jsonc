@@ -52,3 +52,45 @@ public class Example {
     }
 }
 ```
+
+## Development
+
+### Building and Testing
+This project uses Gradle for building and testing. Java 21 is required.
+
+```bash
+# Build the project
+./gradlew build
+
+# Run all tests
+./gradlew test
+
+# Run specific test classes
+./gradlew test --tests "jp.vemi.jsoncmapper.JsoncUtilsTest"
+./gradlew test --tests "jp.vemi.jsoncmapper.SecurityTest"
+./gradlew test --tests "jp.vemi.jsoncmapper.JsoncMapperTest"
+```
+
+### GitHub Workflows
+
+#### PR Test Execution
+The repository includes an optional test execution workflow that can be triggered manually or automatically on PR events.
+
+**Manual Execution:**
+1. Go to Actions tab in GitHub
+2. Select "PR Test Execution" workflow
+3. Click "Run workflow"
+4. Configure options:
+   - **Test Scope**: Choose from `all`, `unit-only`, `security-only`, or `integration-only`
+   - **Run Build**: Enable/disable full build before tests
+   - **PR Number**: Optionally specify a PR number to test
+
+**Automatic Execution:**
+The workflow automatically runs on PR events (opened, synchronize, ready_for_review) with full test scope.
+
+**Features:**
+- Selective test execution by scope
+- Detailed test results with summaries
+- PR comments with test results
+- Gradle caching for faster execution
+- Timeout protection (10 minutes max)
