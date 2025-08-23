@@ -453,22 +453,20 @@ public class JsoncMapperTest {
     @Test
     public void testReadValueWithComplexNesting() throws Exception {
         JsoncMapper mapper = new JsoncMapper();
-        String jsonc = """
-            {
-                /* root comment */
-                "data": {
-                    /* nested comment */
-                    "users": [
-                        /* array comment */
-                        {
-                            /* object comment */
-                            "name": "John",
-                            "age": 30
-                        }
-                    ]
-                }
-            }
-            """;
+        String jsonc = "{\n" +
+                "    /* root comment */\n" +
+                "    \"data\": {\n" +
+                "        /* nested comment */\n" +
+                "        \"users\": [\n" +
+                "            /* array comment */\n" +
+                "            {\n" +
+                "                /* object comment */\n" +
+                "                \"name\": \"John\",\n" +
+                "                \"age\": 30\n" +
+                "            }\n" +
+                "        ]\n" +
+                "    }\n" +
+                "}";
         
         JsonNode result = mapper.readTree(jsonc);
         assertNotNull(result);
