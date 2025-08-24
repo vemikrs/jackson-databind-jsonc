@@ -73,13 +73,13 @@ JsoncMapper mapper = new JsoncMapper.Builder()
 さまざまな環境要件に対応するため、2 つの配布形式を提供します。
 
 ### Slim JAR（推奨）
-- ファイル: `lib-1.0.0.jar`（約 5KB）
+- ファイル: `jackson-databind-jsonc-1.0.0.jar`（約 5KB）
 - 用途: モダンな Jackson 環境、Maven/Gradle プロジェクト
 - 依存関係: Jackson 2.18.4+ が必要
 - 特徴: 軽量で依存関係管理が柔軟
 
 ### All-in-One JAR（エンタープライズ）
-- ファイル: `lib-1.0.0-all.jar`（約 7.8MB）
+- ファイル: `jackson-databind-jsonc-1.0.0-all.jar`（約 7.8MB）
 - 用途: エンタープライズ Java アプリ、レガシー環境、依存関係競合回避
 - 依存関係: 自己完結（Jackson 同梱）
 - 特徴: 単一ファイル配布、依存関係競合なし
