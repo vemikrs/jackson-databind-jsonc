@@ -1,5 +1,14 @@
 package jp.vemi.jsoncmapper;
 
+/**
+ * Utility class for JSONC comment removal and trailing comma processing.
+ * 
+ * <p>Provides secure, linear-time algorithms with ReDoS protection.
+ * Supports block comments, line comments, and string content protection.
+ * 
+ * @since 1.0.0
+ * @see JsoncMapper
+ */
 public class JsoncUtils {
     
     /**
