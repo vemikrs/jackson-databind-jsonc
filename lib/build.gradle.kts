@@ -88,8 +88,8 @@ tasks {
     
     // All-in-One JAR（エンタープライズ環境向け）- shadowJar互換性のため残す
     val shadowJar = register<Jar>("shadowJar") {
-        archiveClassifier.set("all")
-        archiveFileName.set("jackson-databind-jsonc-${project.version}-all.jar")
+        archiveClassifier.set("shadow")
+        archiveFileName.set("jackson-databind-jsonc-${project.version}-shadow.jar")
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         
         from(sourceSets.main.get().output)
