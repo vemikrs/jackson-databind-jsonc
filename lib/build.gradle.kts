@@ -8,6 +8,7 @@
 plugins {
     `java-library`
     `maven-publish`
+    signing
 }
 
 group = "jp.vemi"
@@ -96,21 +97,32 @@ tasks {
     }
 }
 
+// GPG Signing Configuration
+signing {
+    val signingKey = System.getenv("GPG_PRIVATE_KEY")
+    val signingPassword = System.getenv("GPG_PASSPHRASE")
+    
+    if (signingKey != null && signingPassword != null) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign(publishing.publications)
+    }
+}
+
 publishing {
     publications {
-        create<MavenPublication>("slim") {
+        create<MavenPublication>("maven") {
             from(components["java"])
-            artifactId = project.name
+            artifactId = "jackson-databind-jsonc"
             
             pom {
-                name.set("Jackson Databind JSONC")
-                description.set("JSONC (JSON with Comments) support for Jackson")
+                name.set("Jackson-Databind-Jsonc")
+                description.set("A Java library that extends Jackson's JsonMapper to handle JSONC (JSON with Comments) format")
                 url.set("https://github.com/vemic/jackson-databind-jsonc")
                 
                 licenses {
                     license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
+                        name.set("Apache License 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
                     }
                 }
                 
@@ -118,44 +130,14 @@ publishing {
                     developer {
                         id.set("vemic")
                         name.set("vemic")
+                        url.set("https://github.com/vemic")
                     }
                 }
                 
                 scm {
                     connection.set("scm:git:git://github.com/vemic/jackson-databind-jsonc.git")
                     developerConnection.set("scm:git:ssh://github.com:vemic/jackson-databind-jsonc.git")
-                    url.set("https://github.com/vemic/jackson-databind-jsonc/tree/main")
-                }
-            }
-        }
-        
-        create<MavenPublication>("fatJar") {
-            artifact(tasks.named("shadowJar").get())
-            artifactId = "${project.name}-all"
-            
-            pom {
-                name.set("Jackson Databind JSONC (All-in-One)")
-                description.set("JSONC (JSON with Comments) support for Jackson - All-in-One JAR with dependencies")
-                url.set("https://github.com/vemic/jackson-databind-jsonc")
-                
-                licenses {
-                    license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
-                    }
-                }
-                
-                developers {
-                    developer {
-                        id.set("vemic")
-                        name.set("vemic")
-                    }
-                }
-                
-                scm {
-                    connection.set("scm:git:git://github.com/vemic/jackson-databind-jsonc.git")
-                    developerConnection.set("scm:git:ssh://github.com:vemic/jackson-databind-jsonc.git")
-                    url.set("https://github.com/vemic/jackson-databind-jsonc/tree/main")
+                    url.set("https://github.com/vemic/jackson-databind-jsonc")
                 }
             }
         }
