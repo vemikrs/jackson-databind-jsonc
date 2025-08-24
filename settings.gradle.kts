@@ -10,5 +10,5 @@ plugins {
     // This plugin requires Java 17+ to run
 }
 
-rootProject.name = "jackson-databind-jasonc"
+rootProject.name = "jackson-databind-jsonc"
 include("lib")

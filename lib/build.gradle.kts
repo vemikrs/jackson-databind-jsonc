@@ -44,10 +44,10 @@ tasks {
     // Slim JAR（デフォルト・推奨）- 依存関係を含まない軽量版
     jar {
         archiveClassifier.set("")
-        archiveFileName.set("${project.name}-${project.version}.jar")
+        archiveFileName.set("jackson-databind-jsonc-${project.version}.jar")
         manifest {
             attributes(mapOf(
-                "Implementation-Title" to project.name,
+                "Implementation-Title" to "jackson-databind-jsonc",
                 "Implementation-Version" to project.version,
                 "Automatic-Module-Name" to "jp.vemi.jsoncmapper",
                 "Multi-Release" to "true"
@@ -55,10 +55,10 @@ tasks {
         }
     }
     
-    // All-in-One JAR（エンタープライズ環境向け）- Jackson関連のみ含む最小限の自己完結型
-    val shadowJar = register<Jar>("shadowJar") {
+    // Fat JAR（推奨）- Jackson関連のみ含む最小限の自己完結型
+    val fatJar = register<Jar>("fatJar") {
         archiveClassifier.set("all")
-        archiveFileName.set("${project.name}-${project.version}-all.jar")
+        archiveFileName.set("jackson-databind-jsonc-${project.version}-all.jar")
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         
         from(sourceSets.main.get().output)
@@ -79,7 +79,38 @@ tasks {
         
         manifest {
             attributes(mapOf(
-                "Implementation-Title" to "$project.name (All-in-One)",
+                "Implementation-Title" to "jackson-databind-jsonc (All-in-One)",
+                "Implementation-Version" to project.version,
+                "Multi-Release" to "true"
+            ))
+        }
+    }
+    
+    // All-in-One JAR（エンタープライズ環境向け）- shadowJar互換性のため残す
+    val shadowJar = register<Jar>("shadowJar") {
+        archiveClassifier.set("all")
+        archiveFileName.set("jackson-databind-jsonc-${project.version}-all.jar")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        
+        from(sourceSets.main.get().output)
+        
+        // Jackson関連のみ含める（Guava, Commons-Mathは除外）
+        from({
+            configurations.runtimeClasspath.get()
+                .filter { it.name.contains("jackson") && it.name.endsWith("jar") }
+                .map { zipTree(it) }
+        }) {
+            exclude("META-INF/*.SF")
+            exclude("META-INF/*.DSA")
+            exclude("META-INF/*.RSA")
+            exclude("META-INF/DEPENDENCIES")
+            exclude("META-INF/LICENSE*")
+            exclude("META-INF/NOTICE*")
+        }
+        
+        manifest {
+            attributes(mapOf(
+                "Implementation-Title" to "jackson-databind-jsonc (All-in-One)",
                 "Implementation-Version" to project.version,
                 "Multi-Release" to "true"
             ))
@@ -88,6 +119,7 @@ tasks {
     
     // 両方をビルド
     build {
+        dependsOn(fatJar)
         dependsOn(shadowJar)
     }
     
@@ -100,7 +132,7 @@ publishing {
     publications {
         create<MavenPublication>("slim") {
             from(components["java"])
-            artifactId = project.name
+            artifactId = "jackson-databind-jsonc"
             
             pom {
                 name.set("Jackson Databind JSONC")
@@ -130,8 +162,8 @@ publishing {
         }
         
         create<MavenPublication>("fatJar") {
-            artifact(tasks.named("shadowJar").get())
-            artifactId = "${project.name}-all"
+            artifact(tasks.named("fatJar").get())
+            artifactId = "jackson-databind-jsonc-all"
             
             pom {
                 name.set("Jackson Databind JSONC (All-in-One)")

@@ -21,21 +21,26 @@ jobs:
       - name: Set execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Set up JDK 17 (for building)
+      - name: Set up JDK 21 (for building)
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Build JARs
         run: |
           chmod +x ./gradlew
-          ./gradlew clean build shadowJar
+          ./gradlew clean build fatJar
+          
+      - name: List built artifacts
+        run: |
+          echo "Built artifacts:"
+          find lib/build/libs -name "*.jar" -ls
           
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            lib/build/libs/*-[0-9]*.jar
-            lib/build/libs/*-[0-9]*-all.jar
+            lib/build/libs/jackson-databind-jsonc-*-[0-9]*.jar
+            lib/build/libs/jackson-databind-jsonc-*-[0-9]*-all.jar
           generate_release_notes: true

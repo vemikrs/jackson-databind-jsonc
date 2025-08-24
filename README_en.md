@@ -36,13 +36,13 @@ For maximum compatibility, classes are compiled to Java 8 bytecode (major versio
 To meet different environment requirements, two distribution formats are provided.
 
 ### Slim JAR (Recommended)
-- File: `lib-1.0.0.jar` (~5KB)
+- File: `jackson-databind-jsonc-1.0.0.jar` (~5KB)
 - Use Case: Modern Jackson environments, Maven/Gradle projects
 - Dependencies: Requires Jackson 2.18.4+
 - Benefits: Lightweight, flexible dependency management
 
 ### All-in-One JAR (Enterprise)
-- File: `lib-1.0.0-all.jar` (~7.8MB)
+- File: `jackson-databind-jsonc-1.0.0-all.jar` (~7.8MB)
 - Use Case: Enterprise Java apps, legacy environments, dependency conflict avoidance
 - Dependencies: Self-contained (Jackson included)
 - Benefits: Single-file deployment, no dependency conflicts
