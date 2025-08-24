@@ -45,10 +45,10 @@ tasks {
     // Slim JAR（デフォルト・推奨）- 依存関係を含まない軽量版
     jar {
         archiveClassifier.set("")
-        archiveFileName.set("${project.name}-${project.version}.jar")
+        archiveFileName.set("jackson-databind-jsonc-${project.version}.jar")
         manifest {
             attributes(mapOf(
-                "Implementation-Title" to project.name,
+                "Implementation-Title" to "jackson-databind-jsonc",
                 "Implementation-Version" to project.version,
                 "Automatic-Module-Name" to "jp.vemi.jsoncmapper",
                 "Multi-Release" to "true"
@@ -56,10 +56,10 @@ tasks {
         }
     }
     
-    // All-in-One JAR（エンタープライズ環境向け）- Jackson関連のみ含む最小限の自己完結型
-    val shadowJar = register<Jar>("shadowJar") {
+    // Fat JAR（推奨）- Jackson関連のみ含む最小限の自己完結型
+    val fatJar = register<Jar>("fatJar") {
         archiveClassifier.set("all")
-        archiveFileName.set("${project.name}-${project.version}-all.jar")
+        archiveFileName.set("jackson-databind-jsonc-${project.version}-all.jar")
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         
         from(sourceSets.main.get().output)
@@ -80,7 +80,38 @@ tasks {
         
         manifest {
             attributes(mapOf(
-                "Implementation-Title" to "$project.name (All-in-One)",
+                "Implementation-Title" to "jackson-databind-jsonc (All-in-One)",
+                "Implementation-Version" to project.version,
+                "Multi-Release" to "true"
+            ))
+        }
+    }
+    
+    // All-in-One JAR（エンタープライズ環境向け）- shadowJar互換性のため残す
+    val shadowJar = register<Jar>("shadowJar") {
+        archiveClassifier.set("shadow")
+        archiveFileName.set("jackson-databind-jsonc-${project.version}-shadow.jar")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        
+        from(sourceSets.main.get().output)
+        
+        // Jackson関連のみ含める（Guava, Commons-Mathは除外）
+        from({
+            configurations.runtimeClasspath.get()
+                .filter { it.name.contains("jackson") && it.name.endsWith("jar") }
+                .map { zipTree(it) }
+        }) {
+            exclude("META-INF/*.SF")
+            exclude("META-INF/*.DSA")
+            exclude("META-INF/*.RSA")
+            exclude("META-INF/DEPENDENCIES")
+            exclude("META-INF/LICENSE*")
+            exclude("META-INF/NOTICE*")
+        }
+        
+        manifest {
+            attributes(mapOf(
+                "Implementation-Title" to "jackson-databind-jsonc (All-in-One)",
                 "Implementation-Version" to project.version,
                 "Multi-Release" to "true"
             ))
@@ -89,6 +120,7 @@ tasks {
     
     // 両方をビルド
     build {
+        dependsOn(fatJar)
         dependsOn(shadowJar)
     }
     
@@ -131,6 +163,37 @@ publishing {
                         id.set("vemic")
                         name.set("vemic")
                         url.set("https://github.com/vemic")
+                    }
+                }
+                
+                scm {
+                    connection.set("scm:git:git://github.com/vemic/jackson-databind-jsonc.git")
+                    developerConnection.set("scm:git:ssh://github.com:vemic/jackson-databind-jsonc.git")
+                    url.set("https://github.com/vemic/jackson-databind-jsonc")
+                }
+            }
+        }
+        
+        create<MavenPublication>("fatJar") {
+            artifact(tasks.named("fatJar").get())
+            artifactId = "jackson-databind-jsonc-all"
+            
+            pom {
+                name.set("Jackson Databind JSONC (All-in-One)")
+                description.set("JSONC (JSON with Comments) support for Jackson - All-in-One JAR with dependencies")
+                url.set("https://github.com/vemic/jackson-databind-jsonc")
+                
+                licenses {
+                    license {
+                        name.set("Apache License 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id.set("vemic")
+                        name.set("vemic")
                     }
                 }
                 

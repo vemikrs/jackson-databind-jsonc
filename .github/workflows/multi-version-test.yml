@@ -106,7 +106,7 @@ jobs:
           export PATH="$JAVA_HOME/bin:$PATH"
           java -version
           echo "Testing JAR compatibility with Java 8..."
-          javap -cp lib/build/libs/lib-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
+          javap -cp lib/build/libs/jackson-databind-jsonc-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
           echo "✅ JAR is compatible with Java 8"
 
       - name: Test Java 11 Runtime Compatibility
@@ -115,7 +115,7 @@ jobs:
           export PATH="$JAVA_HOME/bin:$PATH"
           java -version
           echo "Testing JAR compatibility with Java 11..."
-          javap -cp lib/build/libs/lib-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
+          javap -cp lib/build/libs/jackson-databind-jsonc-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
           echo "✅ JAR is compatible with Java 11"
 
       - name: Test Java 17 Runtime Compatibility
@@ -124,7 +124,7 @@ jobs:
           export PATH="$JAVA_HOME/bin:$PATH"
           java -version
           echo "Testing JAR compatibility with Java 17..."
-          javap -cp lib/build/libs/lib-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
+          javap -cp lib/build/libs/jackson-databind-jsonc-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
           echo "✅ JAR is compatible with Java 17"
 
       - name: Test Java 21 Runtime Compatibility
@@ -133,7 +133,7 @@ jobs:
           export PATH="$JAVA_HOME/bin:$PATH"
           java -version
           echo "Testing JAR compatibility with Java 21..."
-          javap -cp lib/build/libs/lib-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
+          javap -cp lib/build/libs/jackson-databind-jsonc-1.0.0.jar jp.vemi.jsoncmapper.JsoncMapper > /dev/null
           echo "✅ JAR is compatible with Java 21"
 
       - name: Verify Java 8 Bytecode
@@ -141,7 +141,7 @@ jobs:
           export JAVA_HOME="${JAVA_HOME_8_X64}"
           export PATH="$JAVA_HOME/bin:$PATH"
           echo "Checking bytecode version..."
-          MAJOR_VERSION=$(javap -cp lib/build/libs/lib-1.0.0.jar -v jp.vemi.jsoncmapper.JsoncMapper | grep "major version" | cut -d':' -f2 | xargs)
+          MAJOR_VERSION=$(javap -cp lib/build/libs/jackson-databind-jsonc-1.0.0.jar -v jp.vemi.jsoncmapper.JsoncMapper | grep "major version" | cut -d':' -f2 | xargs)
           echo "Bytecode major version: $MAJOR_VERSION"
           if [ "$MAJOR_VERSION" -eq "52" ]; then
             echo "✅ Bytecode is compiled for Java 8 (major version 52)"
