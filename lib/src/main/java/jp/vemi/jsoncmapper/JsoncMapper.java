@@ -13,6 +13,66 @@ import java.nio.charset.StandardCharsets;
 
 public class JsoncMapper extends JsonMapper {
     
+    private final boolean removeTrailingCommas;
+    
+    /**
+     * Default constructor that creates a JsoncMapper without trailing comma removal.
+     */
+    public JsoncMapper() {
+        this.removeTrailingCommas = false;
+    }
+    
+    /**
+     * Package-private constructor for Builder pattern.
+     * 
+     * @param removeTrailingCommas if true, trailing commas will be automatically removed
+     */
+    JsoncMapper(boolean removeTrailingCommas) {
+        this.removeTrailingCommas = removeTrailingCommas;
+    }
+    
+    /**
+     * Builder class for configuring JsoncMapper options.
+     */
+    public static class Builder {
+        private boolean removeTrailingCommas = false;
+        
+        /**
+         * Enable automatic removal of trailing commas in JSON objects and arrays.
+         * This allows parsing of JSON5/JSONC format with trailing commas.
+         * 
+         * @param allowTrailingCommas true to enable trailing comma removal
+         * @return this builder for method chaining
+         */
+        public Builder allowTrailingCommas(boolean allowTrailingCommas) {
+            this.removeTrailingCommas = allowTrailingCommas;
+            return this;
+        }
+        
+        /**
+         * Build a new JsoncMapper with the configured options.
+         * 
+         * @return configured JsoncMapper instance
+         */
+        public JsoncMapper build() {
+            return new JsoncMapper(removeTrailingCommas);
+        }
+    }
+    
+    /**
+     * Preprocesses JSONC content by removing comments and optionally trailing commas.
+     * 
+     * @param content the JSONC content to preprocess
+     * @return processed JSON content
+     */
+    private String preprocessJsonc(String content) {
+        if (removeTrailingCommas) {
+            return JsoncUtils.removeCommentsAndTrailingCommas(content);
+        } else {
+            return JsoncUtils.removeComments(content);
+        }
+    }
+    
     /**
      * Parse JSONC (JSON with Comments) content into a Java object.
      * This method securely removes comments while preserving strings and
@@ -35,7 +95,7 @@ public class JsoncMapper extends JsonMapper {
             throw new IllegalArgumentException("Value type cannot be null");
         }
         
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -59,8 +119,9 @@ public class JsoncMapper extends JsonMapper {
             throw new IllegalArgumentException("Value type reference cannot be null");
         }
         
-        String json = JsoncUtils.removeComments(content);
-        return super.readValue(json, valueTypeRef);
+        // Convert TypeReference to JavaType and delegate to avoid double processing
+        JavaType javaType = getTypeFactory().constructType(valueTypeRef);
+        return readValue(content, javaType);
     }
     
     /**
@@ -83,7 +144,7 @@ public class JsoncMapper extends JsonMapper {
             throw new IllegalArgumentException("Value type cannot be null");
         }
         
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -109,7 +170,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readFileToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -135,7 +196,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readFileToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueTypeRef);
     }
     
@@ -161,7 +222,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readFileToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -187,7 +248,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readReaderToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -213,7 +274,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readReaderToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueTypeRef);
     }
     
@@ -239,7 +300,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readReaderToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -265,7 +326,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readInputStreamToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -291,7 +352,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readInputStreamToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueTypeRef);
     }
     
@@ -317,7 +378,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readInputStreamToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -343,7 +404,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readUrlToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -369,7 +430,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readUrlToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueTypeRef);
     }
     
@@ -395,7 +456,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readUrlToString(src);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -421,7 +482,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = new String(src, StandardCharsets.UTF_8);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -447,7 +508,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = new String(src, StandardCharsets.UTF_8);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueTypeRef);
     }
     
@@ -473,7 +534,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = new String(src, StandardCharsets.UTF_8);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readValue(json, valueType);
     }
     
@@ -500,7 +561,7 @@ public class JsoncMapper extends JsonMapper {
             throw new IllegalArgumentException("Content cannot be null");
         }
         
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readTree(json);
     }
     
@@ -520,7 +581,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readFileToString(file);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readTree(json);
     }
     
@@ -540,7 +601,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readReaderToString(reader);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readTree(json);
     }
     
@@ -560,7 +621,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readInputStreamToString(inputStream);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readTree(json);
     }
     
@@ -580,7 +641,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String content = readUrlToString(url);
-        String json = JsoncUtils.removeComments(content);
+        String json = preprocessJsonc(content);
         return super.readTree(json);
     }
     
@@ -600,7 +661,7 @@ public class JsoncMapper extends JsonMapper {
         }
         
         String contentStr = new String(content, StandardCharsets.UTF_8);
-        String json = JsoncUtils.removeComments(contentStr);
+        String json = preprocessJsonc(contentStr);
         return super.readTree(json);
     }
     

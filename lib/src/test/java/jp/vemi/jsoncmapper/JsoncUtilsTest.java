@@ -283,4 +283,148 @@ public class JsoncUtilsTest {
         String result = JsoncUtils.removeComments(jsonc);
         assertEquals(expected, result);
     }
+
+    // Trailing Comma Tests
+    @Test
+    public void testRemoveTrailingCommasFromObject() {
+        String jsonc = "{ \"key1\": \"value1\", \"key2\": \"value2\", }";
+        String expected = "{ \"key1\": \"value1\", \"key2\": \"value2\" }";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testRemoveTrailingCommasFromArray() {
+        String jsonc = "[ \"item1\", \"item2\", \"item3\", ]";
+        String expected = "[ \"item1\", \"item2\", \"item3\" ]";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testRemoveTrailingCommasNestedStructures() {
+        String jsonc = "{ \"array\": [ \"item1\", \"item2\", ], \"obj\": { \"nested\": \"value\", }, }";
+        String expected = "{ \"array\": [ \"item1\", \"item2\" ], \"obj\": { \"nested\": \"value\" } }";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testTrailingCommasInStrings() {
+        // Commas inside strings should NOT be removed
+        String jsonc = "{ \"message\": \"This, has, commas,\", }";
+        String expected = "{ \"message\": \"This, has, commas,\" }";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testNoTrailingCommas() {
+        String jsonc = "{ \"key1\": \"value1\", \"key2\": \"value2\" }";
+        String expected = "{ \"key1\": \"value1\", \"key2\": \"value2\" }";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testTrailingCommasWithWhitespace() {
+        String jsonc = "{ \"key\": \"value\",   \n  }";
+        String expected = "{ \"key\": \"value\"   \n  }";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testTrailingCommasWithComments() {
+        String jsonc = "{ \"key\": \"value\", /* comment */ }";
+        String expected = "{ \"key\": \"value\" /* comment */ }";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testTrailingCommasWithLineComments() {
+        String jsonc = "{ \"key\": \"value\", // comment\n }";
+        String expected = "{ \"key\": \"value\" // comment\n }";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testNonTrailingCommas() {
+        // Regular commas should not be removed
+        String jsonc = "{ \"a\": 1, \"b\": 2, \"c\": 3 }";
+        String expected = "{ \"a\": 1, \"b\": 2, \"c\": 3 }";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testEmptyObjectsAndArrays() {
+        String jsonc = "{ \"empty_obj\": { }, \"empty_array\": [ ], }";
+        String expected = "{ \"empty_obj\": { }, \"empty_array\": [ ] }";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    // Combined Comment and Trailing Comma Tests
+    @Test
+    public void testRemoveCommentsAndTrailingCommas() {
+        String jsonc = "{ /* comment */ \"key\": \"value\", }";
+        String expected = "{  \"key\": \"value\" }";
+        String result = JsoncUtils.removeCommentsAndTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testCombinedComplexExample() {
+        String jsonc = "{\n" +
+            "    /* Main object */\n" +
+            "    \"users\": [\n" +
+            "        { \"name\": \"Alice\", \"age\": 30, }, // User 1\n" +
+            "        { \"name\": \"Bob\", \"age\": 25, }, // User 2\n" +
+            "    ],\n" +
+            "    \"settings\": {\n" +
+            "        /* Configuration */\n" +
+            "        \"theme\": \"dark\",\n" +
+            "        \"notifications\": true,\n" +
+            "    },\n" +
+            "}";
+        String expected = "{\n" +
+            "    \n" +
+            "    \"users\": [\n" +
+            "        { \"name\": \"Alice\", \"age\": 30 }, \n" +
+            "        { \"name\": \"Bob\", \"age\": 25 } \n" +
+            "    ],\n" +
+            "    \"settings\": {\n" +
+            "        \n" +
+            "        \"theme\": \"dark\",\n" +
+            "        \"notifications\": true\n" +
+            "    }\n" +
+            "}";
+        String result = JsoncUtils.removeCommentsAndTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testTrailingCommasNullInput() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            JsoncUtils.removeTrailingCommas(null);
+        });
+    }
+
+    @Test
+    public void testCombinedNullInput() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            JsoncUtils.removeCommentsAndTrailingCommas(null);
+        });
+    }
+
+    @Test
+    public void testTrailingCommasEmptyString() {
+        String jsonc = "";
+        String expected = "";
+        String result = JsoncUtils.removeTrailingCommas(jsonc);
+        assertEquals(expected, result);
+    }
 }
