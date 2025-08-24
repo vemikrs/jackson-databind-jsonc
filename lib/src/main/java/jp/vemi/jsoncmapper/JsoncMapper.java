@@ -19,15 +19,15 @@ public class JsoncMapper extends JsonMapper {
      * Default constructor that creates a JsoncMapper without trailing comma removal.
      */
     public JsoncMapper() {
-        this(false);
+        this.removeTrailingCommas = false;
     }
     
     /**
-     * Constructor with configuration options.
+     * Package-private constructor for Builder pattern.
      * 
      * @param removeTrailingCommas if true, trailing commas will be automatically removed
      */
-    public JsoncMapper(boolean removeTrailingCommas) {
+    JsoncMapper(boolean removeTrailingCommas) {
         this.removeTrailingCommas = removeTrailingCommas;
     }
     
@@ -119,8 +119,9 @@ public class JsoncMapper extends JsonMapper {
             throw new IllegalArgumentException("Value type reference cannot be null");
         }
         
-        String json = preprocessJsonc(content);
-        return super.readValue(json, valueTypeRef);
+        // Convert TypeReference to JavaType and delegate to avoid double processing
+        JavaType javaType = getTypeFactory().constructType(valueTypeRef);
+        return readValue(content, javaType);
     }
     
     /**
