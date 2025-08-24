@@ -1,6 +1,7 @@
+---
 name: Release
 
-on:
+"on":
   push:
     tags:
       - 'v*.*.*'
@@ -38,7 +39,7 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew clean build shadowJar
-          
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
