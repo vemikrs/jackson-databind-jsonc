@@ -41,6 +41,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            lib/build/libs/jackson-databind-jsonc-*-[0-9]*.jar
-            lib/build/libs/jackson-databind-jsonc-*-[0-9]*-all.jar
+            lib/build/libs/jackson-databind-jsonc-*.jar
           generate_release_notes: true
