@@ -11,12 +11,25 @@ import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * JsoncMapper extends Jackson's JsonMapper to handle JSONC (JSON with Comments) format.
+ * 
+ * <p>Supports block comments, line comments, and optional trailing comma removal.
+ * Provides ReDoS protection and preserves comments inside JSON strings.
+ * 
+ * @since 1.0.0
+ * @see JsoncUtils
+ */
 public class JsoncMapper extends JsonMapper {
     
     private final boolean removeTrailingCommas;
     
     /**
      * Default constructor that creates a JsoncMapper without trailing comma removal.
+     * 
+     * <p>Supports block comments and line comments. Use Builder for trailing comma support.
+     * 
+     * @see Builder
      */
     public JsoncMapper() {
         this.removeTrailingCommas = false;

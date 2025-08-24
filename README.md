@@ -10,6 +10,43 @@
 - Jackson の `JsonMapper` を拡張
 - 複数の Java バージョンをサポート（Java 8, 11, 17, 21, 24）
 - 利用シーンに応じた 2 つの配布形式を提供
+- ReDoS攻撃に対する保護機能
+- トレーリングカンマ除去機能（オプション）
+
+## サポートされるコメント形式
+
+### ✅ 完全サポート
+- **ブロックコメント**: `/* コメント */` - 複数行対応
+- **行末コメント**: `// コメント` - 行末まで
+- **マルチラインコメント**: 改行を含むコメント
+- **文字列内コメント保護**: JSON文字列内のコメントは保持
+
+```javascript
+{
+    /* 設定ファイルのメインセクション */
+    "database": {
+        "host": "localhost", // デフォルトホスト
+        "port": 5432,
+        /* 複数行コメント
+           データベース設定の
+           詳細説明 */
+        "timeout": 30
+    },
+    "message": "This /* is not removed */ from string" // 文字列内は保護
+}
+```
+
+### ❌ 未対応機能
+- **ネストコメント**: `/* 外側 /* 内側 */ 外側 */` - サポートされていません
+- **JSON5のその他機能**: オブジェクトキーの引用符省略等
+
+### 🔧 オプション機能
+- **トレーリングカンマ除去**: Builder パターンで有効化可能
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowTrailingCommas(true)
+    .build();
+```
 
 ## 要件
 
@@ -140,7 +177,164 @@ public class IntraMartJsoncProcessor {
 }
 ```
 
+### ファイルからの読み込み
+```java
+import jp.vemi.jsoncmapper.JsoncMapper;
+import java.io.File;
+
+JsoncMapper mapper = new JsoncMapper();
+
+// ファイルから直接読み込み
+MyConfig config = mapper.readValue(new File("config.jsonc"), MyConfig.class);
+
+// InputStreamから読み込み
+try (InputStream is = new FileInputStream("config.jsonc")) {
+    MyConfig config = mapper.readValue(is, MyConfig.class);
+}
+```
+
+### TypeReferenceを使用した型指定
+```java
+import com.fasterxml.jackson.core.type.TypeReference;
+
+String jsoncArray = """
+    [
+        /* ユーザーリスト */
+        { "name": "Alice", "age": 30 }, // ユーザー1
+        { "name": "Bob", "age": 25 }    // ユーザー2
+    ]
+    """;
+
+List<User> users = mapper.readValue(jsoncArray, new TypeReference<List<User>>() {});
+```
+
+### Builder パターンによる設定
+```java
+// トレーリングカンマを許可する設定
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowTrailingCommas(true)
+    .build();
+
+String jsoncWithTrailingCommas = """
+    {
+        "items": [
+            "item1",
+            "item2", // トレーリングカンマも除去
+        ],
+        "enabled": true, // オブジェクトでも除去
+    }
+    """;
+
+MyClass obj = mapper.readValue(jsoncWithTrailingCommas, MyClass.class);
+```
+
+### JsonNodeを使用した柔軟な処理
+```java
+import com.fasterxml.jackson.databind.JsonNode;
+
+String jsoncData = """
+    {
+        /* 動的な設定 */
+        "settings": {
+            "theme": "dark", // UIテーマ
+            "notifications": true
+        }
+    }
+    """;
+
+JsonNode node = mapper.readTree(jsoncData);
+String theme = node.get("settings").get("theme").asText(); // "dark"
+```
+
+## パフォーマンス考慮事項
+
+### 通常のファイルサイズ（< 10MB）
+- 高速な処理が可能
+- メモリ使用量は元ファイルサイズの約1.5倍程度
+
+### 大きなファイル（> 10MB）
+- **推奨**: 事前にコメント除去してファイルサイズを削減
+- **代替案**: ストリーミング処理の検討
+
+```java
+// 大きなファイルの場合の推奨パターン
+public class LargeFileProcessor {
+    public <T> T processLargeJsonc(File largeFile, Class<T> valueType) 
+            throws IOException {
+        
+        // 1. ファイルサイズをチェック
+        if (largeFile.length() > 10 * 1024 * 1024) { // 10MB
+            // 2. 事前にコメントを除去してテンポラリファイルに保存
+            String content = Files.readString(largeFile.toPath());
+            String cleaned = JsoncUtils.removeComments(content);
+            
+            // 3. 標準のJacksonで処理
+            return new JsonMapper().readValue(cleaned, valueType);
+        }
+        
+        // 通常サイズならJsoncMapperで直接処理
+        return new JsoncMapper().readValue(largeFile, valueType);
+    }
+}
+```
+
+### パフォーマンス最適化のヒント
+- **Slim JAR**: 起動時間とメモリ使用量で有利
+- **All-in-One JAR**: 依存関係解決時間を短縮
+- **Builder設定**: 不要な機能は無効化
+
+## セキュリティ機能
+
+### ReDoS攻撃からの保護
+正規表現を使用しない線形時間アルゴリズムにより、悪意のある入力に対する保護を実装しています。
+
+```java
+// 悪意のある入力でもタイムアウトしない
+String maliciousInput = "/*" + "/*".repeat(10000) + "*/";
+String result = JsoncUtils.removeComments(maliciousInput); // 安全に処理
+```
+
+### 入力検証
+- **null入力**: `IllegalArgumentException` で適切にエラー処理
+- **不正な形式**: `JsonProcessingException` で詳細なエラー情報を提供
+- **文字列保護**: JSON文字列内のコメント風テキストは保持
+
+### 信頼できないソースからの入力
+```java
+public class SecureProcessor {
+    private final JsoncMapper mapper = new JsoncMapper();
+    
+    public <T> Optional<T> safeParseJsonc(String untrustedInput, Class<T> valueType) {
+        try {
+            // 入力検証は自動で実行される
+            T result = mapper.readValue(untrustedInput, valueType);
+            return Optional.of(result);
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            // ログ出力やモニタリング
+            logger.warn("Failed to parse JSONC input: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+}
+```
+
 ## 環境別の推奨
+
+### モダンな Spring Boot
+- 推奨: Slim JAR
+- 理由: Spring Boot が最新の Jackson を管理
+
+### 従来型 Web アプリケーションサーバ
+- 推奨: All-in-One JAR
+- 理由: サーバ側 Jackson との競合を回避
+
+### エンタープライズ Java 環境
+- 推奨: All-in-One JAR
+- 理由: 固定バージョンの Jackson を利用するケースが多い
+
+### マイクロサービス
+- 推奨: Slim JAR
+- 理由: コンテナサイズ最適化と依存性注入
 
 ### モダンな Spring Boot
 - 推奨: Slim JAR
@@ -203,13 +397,89 @@ PR の opened/synchronize/ready_for_review で自動的に実行（フルスコ�
 ## トラブルシューティング
 
 ### 依存関係の競合
+**症状**: `NoSuchMethodError`, `ClassCastException` など
+
+**解決方法**:
 1. All-in-One JAR に切替
-2. もしくは除外設定で Jackson の競合を解消
+```xml
+<!-- Maven の場合 -->
+<dependency>
+    <groupId>jp.vemi</groupId>
+    <artifactId>jackson-databind-jsonc</artifactId>
+    <version>1.0.0</version>
+    <classifier>all</classifier>
+</dependency>
+```
+
+2. 除外設定で Jackson の競合を解消
+```xml
+<dependency>
+    <groupId>other-library</groupId>
+    <artifactId>with-old-jackson</artifactId>
+    <exclusions>
+        <exclusion>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+```
 
 ### ClassNotFoundException
-1. Slim JAR: Jackson 2.18.4 依存を確認
-2. All-in-One JAR: JAR が classpath にあるか確認
+**症状**: `jp.vemi.jsoncmapper.JsoncMapper` が見つからない
 
-### パフォーマンスの考慮事項
-- Slim JAR: 起動時間に有利
-- All-in-One JAR: メモリ使用量がわずかに増える場合あり
+**解決方法**:
+1. **Slim JAR**: Jackson 2.18.4+ 依存を確認
+2. **All-in-One JAR**: JAR が classpath にあるか確認
+3. Maven/Gradle の依存関係を再取得: `./gradlew --refresh-dependencies`
+
+### コメント解析エラー
+**症状**: コメントが正しく除去されない、または例外が発生
+
+**原因と解決**:
+1. **ネストコメント**: サポートされていません
+```java
+// ❌ 動作しません
+String invalid = "{ /* 外側 /* 内側 */ 外側 */ \"key\": \"value\" }";
+
+// ✅ 代替案
+String valid = "{ /* 外側コメント */ \"key\": \"value\" /* 内側コメント */ }";
+```
+
+2. **文字列内のエスケープ**: 適切にエスケープしてください
+```java
+// ✅ 正しい方法
+String jsonc = "{ \"path\": \"C:\\\\\\\\/* not comment */\\\\\\\\file\" }";
+```
+
+### パフォーマンス問題
+**症状**: 大きなファイルでメモリ不足やタイムアウト
+
+**解決方法**:
+1. **ファイルサイズ確認**: 10MB 以上の場合は事前処理を検討
+```java
+if (file.length() > 10_000_000) {
+    // JsoncUtils で事前にコメントを除去
+    String cleaned = JsoncUtils.removeComments(content);
+    return new JsonMapper().readValue(cleaned, MyClass.class);
+}
+```
+
+2. **JVM ヒープサイズ増加**: `-Xmx2g` など
+
+### ビルド関連
+**症状**: ビルドエラーや Gradle 問題
+
+**解決方法**:
+1. **Java バージョン確認**: ビルドには Java 21 が必要
+```bash
+java -version # Java 21 であることを確認
+export JAVA_HOME=/path/to/java21
+```
+
+2. **Gradle キャッシュクリア**:
+```bash
+./gradlew clean build --refresh-dependencies
+```
+
+3. **テスト環境の確認**: 実行時は Java 8+ で動作
