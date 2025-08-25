@@ -39,6 +39,10 @@ java {
     // This allows the library to run on Java 8+ while being built with Java 17+
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+    
+    // Generate sources and javadoc JARs required for Maven Central
+    withSourcesJar()
+    withJavadocJar()
 }
 
 tasks {

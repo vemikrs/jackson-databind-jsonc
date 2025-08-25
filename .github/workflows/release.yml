@@ -52,6 +52,25 @@ jobs:
             lib/build/libs/jackson-databind-jsonc-*.jar
           generate_release_notes: true
 
+      - name: Verify Sonatype Configuration
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        run: |
+          echo "Verifying Sonatype configuration..."
+          echo "OSSRH_USERNAME is set: ${{ secrets.OSSRH_USERNAME != '' }}"
+          echo "OSSRH_PASSWORD is set: ${{ secrets.OSSRH_PASSWORD != '' }}"
+          ./gradlew tasks --group=publishing
+
+      - name: Test Nexus connectivity (optional)
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        run: |
+          echo "Testing Nexus connectivity..."
+          # Try to retrieve staging profile (this will fail in some environments but helps debug)
+          ./gradlew retrieveSonatypeStagingProfile --continue || echo "Staging profile retrieval failed (expected in some environments)"
+
       - name: Publish to Maven Central
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
@@ -60,4 +79,7 @@ jobs:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           echo "Publishing to Maven Central..."
-          ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository
+          echo "Step 1: Build and publish to Sonatype staging..."
+          ./gradlew publishToSonatype --info --stacktrace --no-daemon
+          echo "Step 2: Close and release staging repository..."
+          ./gradlew closeAndReleaseSonatypeStagingRepository --info --stacktrace --no-daemon
