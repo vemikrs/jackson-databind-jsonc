@@ -427,4 +427,185 @@ public class JsoncUtilsTest {
         String result = JsoncUtils.removeTrailingCommas(jsonc);
         assertEquals(expected, result);
     }
+
+    // JSON5 Feature Tests
+    
+    @Test
+    public void testConvertSingleQuotes() {
+        String json5 = "{ 'key': 'value' }";
+        String expected = "{ \"key\": \"value\" }";
+        String result = JsoncUtils.convertSingleQuotes(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertSingleQuotesWithEscaping() {
+        String json5 = "{ 'key': 'value with \"double\" quotes' }";
+        String expected = "{ \"key\": \"value with \\\"double\\\" quotes\" }";
+        String result = JsoncUtils.convertSingleQuotes(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertSingleQuotesMixed() {
+        String json5 = "{ \"doubleKey\": \"double value\", 'singleKey': 'single value' }";
+        String expected = "{ \"doubleKey\": \"double value\", \"singleKey\": \"single value\" }";
+        String result = JsoncUtils.convertSingleQuotes(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertSingleQuotesNullInput() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            JsoncUtils.convertSingleQuotes(null);
+        });
+    }
+    
+    @Test
+    public void testConvertHexNumbers() {
+        String json5 = "{ \"value\": 0xFF }";
+        String expected = "{ \"value\": 255 }";
+        String result = JsoncUtils.convertHexNumbers(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertHexNumbersMixedCase() {
+        String json5 = "{ \"lower\": 0xff, \"upper\": 0XFF }";
+        String expected = "{ \"lower\": 255, \"upper\": 255 }";
+        String result = JsoncUtils.convertHexNumbers(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertHexNumbersInStrings() {
+        // Hex numbers inside strings should NOT be converted
+        String json5 = "{ \"message\": \"The value is 0xFF\", \"actual\": 0xFF }";
+        String expected = "{ \"message\": \"The value is 0xFF\", \"actual\": 255 }";
+        String result = JsoncUtils.convertHexNumbers(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertHexNumbersLarge() {
+        String json5 = "{ \"value\": 0xABCDEF123 }";
+        String expected = "{ \"value\": 46118400291 }";
+        String result = JsoncUtils.convertHexNumbers(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertHexNumbersNullInput() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            JsoncUtils.convertHexNumbers(null);
+        });
+    }
+    
+    @Test
+    public void testRemovePlusFromNumbers() {
+        String json5 = "{ \"positive\": +123, \"negative\": -456 }";
+        String expected = "{ \"positive\": 123, \"negative\": -456 }";
+        String result = JsoncUtils.removePlusFromNumbers(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testRemovePlusFromDecimalNumbers() {
+        String json5 = "{ \"decimal\": +12.34, \"scientific\": +1.23e5 }";
+        String expected = "{ \"decimal\": 12.34, \"scientific\": 1.23e5 }";
+        String result = JsoncUtils.removePlusFromNumbers(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testRemovePlusFromNumbersInStrings() {
+        // Plus signs inside strings should NOT be removed
+        String json5 = "{ \"message\": \"Use +123 to dial\", \"value\": +123 }";
+        String expected = "{ \"message\": \"Use +123 to dial\", \"value\": 123 }";
+        String result = JsoncUtils.removePlusFromNumbers(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testRemovePlusFromNumbersNullInput() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            JsoncUtils.removePlusFromNumbers(null);
+        });
+    }
+    
+    @Test
+    public void testConvertInfinityAndNaN() {
+        String json5 = "{ \"inf\": Infinity, \"nan\": NaN, \"value\": 42 }";
+        String expected = "{ \"inf\": null, \"nan\": null, \"value\": 42 }";
+        String result = JsoncUtils.convertInfinityAndNaN(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertInfinityAndNaNInStrings() {
+        // Infinity and NaN inside strings should NOT be converted
+        String json5 = "{ \"message\": \"Infinity is a concept\", \"value\": Infinity }";
+        String expected = "{ \"message\": \"Infinity is a concept\", \"value\": null }";
+        String result = JsoncUtils.convertInfinityAndNaN(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertInfinityAndNaNPartialMatch() {
+        // Should not match partial words
+        String json5 = "{ \"infinityPool\": \"InfinityPool\", \"NaNometer\": \"test\" }";
+        String expected = "{ \"infinityPool\": \"InfinityPool\", \"NaNometer\": \"test\" }";
+        String result = JsoncUtils.convertInfinityAndNaN(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertInfinityAndNaNNullInput() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            JsoncUtils.convertInfinityAndNaN(null);
+        });
+    }
+    
+    @Test
+    public void testConvertMultilineStrings() {
+        String json5 = "{ \"key\": \"value\\nwith\\nnewlines\" }";
+        String expected = "{ \"key\": \"value\\nwith\\nnewlines\" }";
+        String result = JsoncUtils.convertMultilineStrings(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertMultilineStringsNullInput() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            JsoncUtils.convertMultilineStrings(null);
+        });
+    }
+    
+    @Test
+    public void testEscapeControlChars() {
+        String json5 = "{ \"key\": \"value\\u0001test\" }";
+        String expected = "{ \"key\": \"value\\u0001test\" }";
+        String result = JsoncUtils.escapeControlChars(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testEscapeControlCharsNullInput() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            JsoncUtils.escapeControlChars(null);
+        });
+    }
+    
+    @Test
+    public void testJson5CombinedFeatures() {
+        String json5 = "{ 'name': 'test', \"hex\": 0xFF, 'plus': +123 }";
+        
+        // Apply transformations in sequence
+        String step1 = JsoncUtils.convertSingleQuotes(json5);
+        String step2 = JsoncUtils.convertHexNumbers(step1);
+        String step3 = JsoncUtils.removePlusFromNumbers(step2);
+        
+        String expected = "{ \"name\": \"test\", \"hex\": 255, \"plus\": 123 }";
+        assertEquals(expected, step3);
+    }
 }

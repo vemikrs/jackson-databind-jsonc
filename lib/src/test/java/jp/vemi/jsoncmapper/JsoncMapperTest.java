@@ -645,6 +645,193 @@ public class JsoncMapperTest {
         assertNotNull(mapper);
     }
 
+    // JSON5 Feature Tests
+    
+    @Test
+    public void testSingleQuoteStrings() throws Exception {
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .allowSingleQuotes(true)
+                .build();
+        
+        String json5 = "{ 'key': 'value with single quotes' }";
+        MyClass result = mapper.readValue(json5, MyClass.class);
+        assertEquals("value with single quotes", result.getKey());
+    }
+    
+    @Test
+    public void testMixedQuoteStrings() throws Exception {
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .allowSingleQuotes(true)
+                .build();
+        
+        String json5 = "{ \"doubleKey\": \"double value\", 'singleKey': 'single value' }";
+        TypeReference<Map<String, String>> typeRef = new TypeReference<Map<String, String>>() {};
+        Map<String, String> result = mapper.readValue(json5, typeRef);
+        
+        assertEquals("double value", result.get("doubleKey"));
+        assertEquals("single value", result.get("singleKey"));
+    }
+    
+    @Test
+    public void testSingleQuotesWithEscaping() throws Exception {
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .allowSingleQuotes(true)
+                .build();
+        
+        String json5 = "{ 'key': 'value with \"double\" quotes inside' }";
+        MyClass result = mapper.readValue(json5, MyClass.class);
+        assertEquals("value with \"double\" quotes inside", result.getKey());
+    }
+    
+    @Test
+    public void testHexNumbers() throws Exception {
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .allowHexNumbers(true)
+                .build();
+        
+        String json5 = "{ \"value\": 0xFF }";
+        TypeReference<Map<String, Integer>> typeRef = new TypeReference<Map<String, Integer>>() {};
+        Map<String, Integer> result = mapper.readValue(json5, typeRef);
+        assertEquals(Integer.valueOf(255), result.get("value"));
+    }
+    
+    @Test
+    public void testMixedCaseHexNumbers() throws Exception {
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .allowHexNumbers(true)
+                .build();
+        
+        String json5 = "{ \"lower\": 0xff, \"upper\": 0XFF, \"mixed\": 0xAbc123 }";
+        TypeReference<Map<String, Long>> typeRef = new TypeReference<Map<String, Long>>() {};
+        Map<String, Long> result = mapper.readValue(json5, typeRef);
+        
+        assertEquals(Long.valueOf(255), result.get("lower"));
+        assertEquals(Long.valueOf(255), result.get("upper"));
+        assertEquals(Long.valueOf(11256099), result.get("mixed")); // 0xAbc123 = 11256099
+    }
+    
+    @Test
+    public void testPlusNumbers() throws Exception {
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .allowPlusNumbers(true)
+                .build();
+        
+        String json5 = "{ \"positive\": +123, \"negative\": -456, \"decimal\": +12.34 }";
+        TypeReference<Map<String, Number>> typeRef = new TypeReference<Map<String, Number>>() {};
+        Map<String, Number> result = mapper.readValue(json5, typeRef);
+        
+        assertEquals(123, result.get("positive").intValue());
+        assertEquals(-456, result.get("negative").intValue());
+        assertEquals(12.34, result.get("decimal").doubleValue(), 0.001);
+    }
+    
+    @Test
+    public void testInfinityAndNaN() throws Exception {
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .allowInfinityAndNaN(true)
+                .build();
+        
+        String json5 = "{ \"inf\": Infinity, \"nan\": NaN, \"value\": 42 }";
+        TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {};
+        Map<String, Object> result = mapper.readValue(json5, typeRef);
+        
+        assertNull(result.get("inf"));  // Infinity becomes null in JSON
+        assertNull(result.get("nan"));  // NaN becomes null in JSON
+        assertEquals(42, result.get("value"));
+    }
+    
+    @Test
+    public void testUnescapedControlChars() throws Exception {
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .allowUnescapedControlChars(true)
+                .build();
+        
+        // Test with a control character (form feed - \f = 0x0C)
+        String json5 = "{ \"key\": \"value\\fwith\\u000Ccontrol\" }";
+        MyClass result = mapper.readValue(json5, MyClass.class);
+        assertNotNull(result.getKey());
+        assertTrue(result.getKey().contains("value"));
+    }
+    
+    @Test
+    public void testMultipleJson5Features() throws Exception {
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .allowSingleQuotes(true)
+                .allowHexNumbers(true)
+                .allowPlusNumbers(true)
+                .allowInfinityAndNaN(true)
+                .allowTrailingCommas(true)
+                .build();
+        
+        String json5 = "{\n" +
+                "  'name': 'test',\n" +
+                "  \"hex\": 0xFF,\n" +
+                "  'plus': +123,\n" +
+                "  \"inf\": Infinity,\n" +
+                "  'nan': NaN,\n" +
+                "}";
+        
+        TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {};
+        Map<String, Object> result = mapper.readValue(json5, typeRef);
+        
+        assertEquals("test", result.get("name"));
+        assertEquals(255, result.get("hex"));
+        assertEquals(123, result.get("plus"));
+        assertNull(result.get("inf"));
+        assertNull(result.get("nan"));
+    }
+    
+    @Test
+    public void testJson5FeaturesDisabledByDefault() throws Exception {
+        JsoncMapper mapper = new JsoncMapper(); // Default constructor
+        
+        // Single quotes should not be processed by default
+        String json5WithSingleQuotes = "{ 'key': 'value' }";
+        
+        // This should fail because Jackson doesn't understand single quotes
+        assertThrows(JsonProcessingException.class, () -> {
+            mapper.readValue(json5WithSingleQuotes, MyClass.class);
+        });
+    }
+    
+    @Test
+    public void testBuilderChainingWithAllFeatures() {
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .allowTrailingCommas(true)
+                .allowSingleQuotes(true)
+                .allowHexNumbers(true)
+                .allowPlusNumbers(true)
+                .allowInfinityAndNaN(true)
+                .allowMultilineStrings(true)
+                .allowUnescapedControlChars(true)
+                .build();
+        
+        assertNotNull(mapper);
+    }
+    
+    @Test
+    public void testJson5WithComments() throws Exception {
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .allowSingleQuotes(true)
+                .allowHexNumbers(true)
+                .allowTrailingCommas(true)
+                .build();
+        
+        String json5 = "{\n" +
+                "  /* Configuration */\n" +
+                "  'name': 'test', // App name\n" +
+                "  \"version\": 0x01, /* Version as hex */\n" +
+                "  'enabled': true, // Trailing comma follows\n" +
+                "}";
+        
+        TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {};
+        Map<String, Object> result = mapper.readValue(json5, typeRef);
+        
+        assertEquals("test", result.get("name"));
+        assertEquals(1, result.get("version"));
+        assertEquals(true, result.get("enabled"));
+    }
+
     static class MyClass {
         private String key;
         public String getKey() { return key; }
