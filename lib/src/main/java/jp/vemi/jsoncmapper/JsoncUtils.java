@@ -544,6 +544,7 @@ public class JsoncUtils {
     
     /**
      * Helper method to check if a plus sign is before a valid number.
+     * Validates the complete number pattern including scientific notation.
      */
     private static boolean isPlusBeforeNumber(String text, int plusIndex) {
         int nextIndex = plusIndex + 1;
@@ -551,9 +552,55 @@ public class JsoncUtils {
             return false;
         }
         
-        char next = text.charAt(nextIndex);
-        // Check if the next character is a digit or decimal point
-        return (next >= '0' && next <= '9') || next == '.';
+        char first = text.charAt(nextIndex);
+        // Must start with digit or decimal point
+        if (!((first >= '0' && first <= '9') || first == '.')) {
+            return false;
+        }
+        
+        // Validate the complete number pattern
+        int i = nextIndex;
+        boolean hasDigits = false;
+        boolean hasDecimal = false;
+        
+        // Parse integer/decimal part
+        while (i < text.length()) {
+            char c = text.charAt(i);
+            if (c >= '0' && c <= '9') {
+                hasDigits = true;
+                i++;
+            } else if (c == '.' && !hasDecimal) {
+                hasDecimal = true;
+                i++;
+            } else {
+                break;
+            }
+        }
+        
+        // Must have at least one digit
+        if (!hasDigits) {
+            return false;
+        }
+        
+        // Check for scientific notation (e/E followed by optional +/- and digits)
+        if (i < text.length() && (text.charAt(i) == 'e' || text.charAt(i) == 'E')) {
+            i++; // skip e/E
+            if (i < text.length() && (text.charAt(i) == '+' || text.charAt(i) == '-')) {
+                i++; // skip optional +/-
+            }
+            // Must have digits after e/E
+            boolean hasExpDigits = false;
+            while (i < text.length() && text.charAt(i) >= '0' && text.charAt(i) <= '9') {
+                hasExpDigits = true;
+                i++;
+            }
+            // If we found 'e/E', we must have digits after it
+            if (!hasExpDigits) {
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     /**
@@ -639,8 +686,8 @@ public class JsoncUtils {
     
     /**
      * Converts multiline strings to single-line JSON strings with proper escaping.
-     * Currently a placeholder implementation - full multiline string support would need
-     * more complex parsing to handle template literals.
+     * Only processes newlines that are inside JSON string values, preserving
+     * JSON structure newlines.
      * 
      * @param json5 JSON5 content with potential multiline strings
      * @return JSON content with multiline strings converted
@@ -651,9 +698,48 @@ public class JsoncUtils {
             throw new IllegalArgumentException("Input cannot be null");
         }
         
-        // For now, just normalize line endings within strings
-        // A full implementation would need to handle template literals
-        return json5.replace("\r\n", "\\n").replace("\r", "\\n").replace("\n", "\\n");
+        if (json5.isEmpty()) {
+            return json5;
+        }
+        
+        StringBuilder result = new StringBuilder(json5.length());
+        int length = json5.length();
+        boolean inString = false;
+        boolean escaped = false;
+        
+        for (int i = 0; i < length; i++) {
+            char current = json5.charAt(i);
+            
+            if (!inString) {
+                // Outside strings - preserve all characters including newlines
+                if (current == '"') {
+                    inString = true;
+                }
+                result.append(current);
+            } else {
+                // Inside string
+                if (escaped) {
+                    escaped = false;
+                    result.append(current);
+                } else if (current == '\\') {
+                    escaped = true;
+                    result.append(current);
+                } else if (current == '"') {
+                    inString = false;
+                    result.append(current);
+                } else if (current == '\r') {
+                    // Convert carriage return to escaped \r
+                    result.append("\\r");
+                } else if (current == '\n') {
+                    // Convert newline to escaped \n
+                    result.append("\\n");
+                } else {
+                    result.append(current);
+                }
+            }
+        }
+        
+        return result.toString();
     }
     
     /**
