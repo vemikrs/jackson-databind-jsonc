@@ -608,4 +608,40 @@ public class JsoncUtilsTest {
         String expected = "{ \"name\": \"test\", \"hex\": 255, \"plus\": 123 }";
         assertEquals(expected, step3);
     }
+    
+    @Test
+    public void testRemovePlusFromNumbersScientificNotationEdgeCases() {
+        // Test scientific notation edge cases - should not remove plus from invalid patterns
+        String json5 = "{ \"invalid1\": +1e, \"invalid2\": +e5, \"valid\": +1e5 }";
+        String expected = "{ \"invalid1\": +1e, \"invalid2\": +e5, \"valid\": 1e5 }";
+        String result = JsoncUtils.removePlusFromNumbers(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testRemovePlusFromNumbersComplexScientificNotation() {
+        // Test various valid scientific notation patterns
+        String json5 = "{ \"a\": +1e5, \"b\": +1.5E-3, \"c\": +.5e10, \"d\": +123E4 }";
+        String expected = "{ \"a\": 1e5, \"b\": 1.5E-3, \"c\": .5e10, \"d\": 123E4 }";
+        String result = JsoncUtils.removePlusFromNumbers(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertMultilineStringsPreservesStructure() {
+        // Multiline string conversion should only affect content inside strings, not JSON structure
+        String json5 = "{\n  \"key\": \"value\",\n  \"other\": \"test\"\n}";
+        String expected = "{\n  \"key\": \"value\",\n  \"other\": \"test\"\n}";
+        String result = JsoncUtils.convertMultilineStrings(json5);
+        assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testConvertMultilineStringsInStringContent() {
+        // Should escape newlines that are actually inside string values
+        String json5 = "{ \"key\": \"line1\nline2\r\nline3\rline4\" }";
+        String expected = "{ \"key\": \"line1\\nline2\\r\\nline3\\rline4\" }";
+        String result = JsoncUtils.convertMultilineStrings(json5);
+        assertEquals(expected, result);
+    }
 }
