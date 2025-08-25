@@ -7,6 +7,12 @@ This project extends Jackson's `JsonMapper` by adding a `JsoncMapper` to handle 
 ## Features
 
 - Supports JSONC with block comments (`/* */`) and end-of-line comments (`//`)
+- **NEW**: Optional JSON5 features via Builder pattern
+  - Single-quoted strings (`'text'` → `"text"`)
+  - Hexadecimal numbers (`0xFF` → `255`)
+  - Plus sign numbers (`+123` → `123`)
+  - Infinity and NaN literals (`Infinity`/`NaN` → `null`)
+  - Multiline strings and unescaped control characters
 - Extends Jackson's `JsonMapper`
 - Multi-version Java support (Java 8, 11, 17, 21, 24)
 - Dual distribution strategy for different deployment scenarios
@@ -40,12 +46,95 @@ This project extends Jackson's `JsonMapper` by adding a `JsoncMapper` to handle 
 - **Nested comments**: `/* outer /* inner */ outer */` - not supported
 - **Other JSON5 features**: unquoted object keys, etc.
 
-### 🔧 Optional Features
-- **Trailing comma removal**: available via Builder pattern
+### 🔧 Optional JSON5 Features
+All JSON5 features are disabled by default and can be individually enabled via the Builder pattern:
+
+#### Trailing Comma Removal
 ```java
 JsoncMapper mapper = new JsoncMapper.Builder()
     .allowTrailingCommas(true)
     .build();
+```
+
+#### Single Quote Strings
+Converts single-quoted strings to double-quoted JSON format:
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowSingleQuotes(true)
+    .build();
+
+// Input: { 'key': 'value' }
+// Output: { "key": "value" }
+```
+
+#### Hexadecimal Numbers
+Converts hexadecimal literals to decimal format:
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowHexNumbers(true)
+    .build();
+
+// Input: { "value": 0xFF }
+// Output: { "value": 255 }
+```
+
+#### Plus Sign Numbers
+Removes explicit plus signs from positive numbers:
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowPlusNumbers(true)
+    .build();
+
+// Input: { "value": +123 }
+// Output: { "value": 123 }
+```
+
+#### Infinity and NaN
+Converts JavaScript-style Infinity and NaN to JSON null:
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowInfinityAndNaN(true)
+    .build();
+
+// Input: { "inf": Infinity, "nan": NaN }
+// Output: { "inf": null, "nan": null }
+```
+
+#### Multiline Strings and Control Characters
+Additional features for enhanced JSON5 compatibility:
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowMultilineStrings(true)
+    .allowUnescapedControlChars(true)
+    .build();
+```
+
+#### All Features Combined
+Enable multiple JSON5 features simultaneously:
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowTrailingCommas(true)
+    .allowSingleQuotes(true)
+    .allowHexNumbers(true)
+    .allowPlusNumbers(true)
+    .allowInfinityAndNaN(true)
+    .allowMultilineStrings(true)
+    .allowUnescapedControlChars(true)
+    .build();
+
+// Parse complex JSON5 input
+String json5 = """
+{
+    /* Configuration */
+    'name': 'My App',        // Single quotes
+    "version": 0xFF,         // Hex number  
+    'port': +8080,           // Plus number
+    "maxValue": Infinity,    // Infinity
+    'enabled': true,         // Trailing comma
+}
+""";
+
+MyConfig config = mapper.readValue(json5, MyConfig.class);
 ```
 
 ## Requirements

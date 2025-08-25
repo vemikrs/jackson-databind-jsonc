@@ -315,4 +315,483 @@ public class JsoncUtils {
         // End of string reached
         return length - 1;
     }
+    
+    /**
+     * Converts single-quoted strings to double-quoted strings.
+     * Handles proper escaping and preserves content inside existing double-quoted strings.
+     * 
+     * @param json5 JSON5 content with potential single-quoted strings
+     * @return JSON content with single quotes converted to double quotes
+     * @throws IllegalArgumentException if input is null
+     */
+    public static String convertSingleQuotes(String json5) {
+        if (json5 == null) {
+            throw new IllegalArgumentException("Input cannot be null");
+        }
+        
+        if (json5.isEmpty()) {
+            return json5;
+        }
+        
+        StringBuilder result = new StringBuilder(json5.length());
+        int length = json5.length();
+        boolean inDoubleQuotedString = false;
+        boolean escaped = false;
+        
+        for (int i = 0; i < length; i++) {
+            char current = json5.charAt(i);
+            
+            if (!inDoubleQuotedString) {
+                if (current == '"') {
+                    inDoubleQuotedString = true;
+                    result.append(current);
+                } else if (current == '\'') {
+                    // Start of single-quoted string - convert to double quote
+                    result.append('"');
+                    i = convertSingleQuotedStringContent(json5, i + 1, result);
+                } else {
+                    result.append(current);
+                }
+            } else {
+                // Inside double-quoted string
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (current == '"') {
+                    inDoubleQuotedString = false;
+                }
+                result.append(current);
+            }
+        }
+        
+        return result.toString();
+    }
+    
+    /**
+     * Helper method to convert content inside a single-quoted string to double-quoted format.
+     */
+    private static int convertSingleQuotedStringContent(String json5, int startIndex, StringBuilder result) {
+        int length = json5.length();
+        boolean escaped = false;
+        
+        for (int i = startIndex; i < length; i++) {
+            char current = json5.charAt(i);
+            
+            if (escaped) {
+                escaped = false;
+                result.append(current);
+            } else if (current == '\\') {
+                escaped = true;
+                result.append(current);
+            } else if (current == '\'') {
+                // End of single-quoted string
+                result.append('"');
+                return i;
+            } else if (current == '"') {
+                // Need to escape double quotes inside single-quoted string
+                result.append('\\');
+                result.append(current);
+            } else {
+                result.append(current);
+            }
+        }
+        
+        // Unclosed single quote - append closing double quote
+        result.append('"');
+        return length - 1;
+    }
+    
+    /**
+     * Converts hexadecimal number literals to decimal format.
+     * Handles 0x and 0X prefixes and preserves numbers inside strings.
+     * 
+     * @param json5 JSON5 content with potential hexadecimal numbers
+     * @return JSON content with hexadecimal numbers converted to decimal
+     * @throws IllegalArgumentException if input is null
+     */
+    public static String convertHexNumbers(String json5) {
+        if (json5 == null) {
+            throw new IllegalArgumentException("Input cannot be null");
+        }
+        
+        if (json5.isEmpty()) {
+            return json5;
+        }
+        
+        StringBuilder result = new StringBuilder(json5.length());
+        int length = json5.length();
+        boolean inString = false;
+        boolean escaped = false;
+        
+        for (int i = 0; i < length; i++) {
+            char current = json5.charAt(i);
+            char next = (i + 1 < length) ? json5.charAt(i + 1) : '\0';
+            
+            if (!inString) {
+                if (current == '"') {
+                    inString = true;
+                    result.append(current);
+                } else if (current == '0' && (next == 'x' || next == 'X')) {
+                    // Potential hex number
+                    int hexEnd = findHexNumberEnd(json5, i + 2);
+                    if (hexEnd > i + 2) {
+                        // Valid hex number found
+                        String hexStr = json5.substring(i + 2, hexEnd);
+                        try {
+                            long decimal = Long.parseLong(hexStr, 16);
+                            result.append(decimal);
+                            i = hexEnd - 1; // -1 because loop will increment
+                        } catch (NumberFormatException e) {
+                            // Invalid hex number, keep as is
+                            result.append(current);
+                        }
+                    } else {
+                        result.append(current);
+                    }
+                } else {
+                    result.append(current);
+                }
+            } else {
+                // Inside string
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (current == '"') {
+                    inString = false;
+                }
+                result.append(current);
+            }
+        }
+        
+        return result.toString();
+    }
+    
+    /**
+     * Helper method to find the end of a hexadecimal number.
+     */
+    private static int findHexNumberEnd(String text, int startIndex) {
+        int i = startIndex;
+        int length = text.length();
+        
+        while (i < length) {
+            char c = text.charAt(i);
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+                break;
+            }
+            i++;
+        }
+        
+        return i;
+    }
+    
+    /**
+     * Removes explicit plus signs from positive numbers.
+     * Preserves plus signs inside strings and in non-numeric contexts.
+     * 
+     * @param json5 JSON5 content with potential plus-prefixed numbers
+     * @return JSON content with plus signs removed from numbers
+     * @throws IllegalArgumentException if input is null
+     */
+    public static String removePlusFromNumbers(String json5) {
+        if (json5 == null) {
+            throw new IllegalArgumentException("Input cannot be null");
+        }
+        
+        if (json5.isEmpty()) {
+            return json5;
+        }
+        
+        StringBuilder result = new StringBuilder(json5.length());
+        int length = json5.length();
+        boolean inString = false;
+        boolean escaped = false;
+        
+        for (int i = 0; i < length; i++) {
+            char current = json5.charAt(i);
+            
+            if (!inString) {
+                if (current == '"') {
+                    inString = true;
+                    result.append(current);
+                } else if (current == '+') {
+                    // Check if this is a plus before a number
+                    if (isPlusBeforeNumber(json5, i)) {
+                        // Skip the plus sign
+                        continue;
+                    } else {
+                        result.append(current);
+                    }
+                } else {
+                    result.append(current);
+                }
+            } else {
+                // Inside string
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (current == '"') {
+                    inString = false;
+                }
+                result.append(current);
+            }
+        }
+        
+        return result.toString();
+    }
+    
+    /**
+     * Helper method to check if a plus sign is before a valid number.
+     * Validates the complete number pattern including scientific notation.
+     */
+    private static boolean isPlusBeforeNumber(String text, int plusIndex) {
+        int nextIndex = plusIndex + 1;
+        if (nextIndex >= text.length()) {
+            return false;
+        }
+        
+        char first = text.charAt(nextIndex);
+        // Must start with digit or decimal point
+        if (!((first >= '0' && first <= '9') || first == '.')) {
+            return false;
+        }
+        
+        // Validate the complete number pattern
+        int i = nextIndex;
+        boolean hasDigits = false;
+        boolean hasDecimal = false;
+        
+        // Parse integer/decimal part
+        while (i < text.length()) {
+            char c = text.charAt(i);
+            if (c >= '0' && c <= '9') {
+                hasDigits = true;
+                i++;
+            } else if (c == '.' && !hasDecimal) {
+                hasDecimal = true;
+                i++;
+            } else {
+                break;
+            }
+        }
+        
+        // Must have at least one digit
+        if (!hasDigits) {
+            return false;
+        }
+        
+        // Check for scientific notation (e/E followed by optional +/- and digits)
+        if (i < text.length() && (text.charAt(i) == 'e' || text.charAt(i) == 'E')) {
+            i++; // skip e/E
+            if (i < text.length() && (text.charAt(i) == '+' || text.charAt(i) == '-')) {
+                i++; // skip optional +/-
+            }
+            // Must have digits after e/E
+            boolean hasExpDigits = false;
+            while (i < text.length() && text.charAt(i) >= '0' && text.charAt(i) <= '9') {
+                hasExpDigits = true;
+                i++;
+            }
+            // If we found 'e/E', we must have digits after it
+            if (!hasExpDigits) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Converts Infinity and NaN literals to JSON-compatible representations.
+     * Infinity becomes null and NaN becomes null (JSON doesn't support these values).
+     * 
+     * @param json5 JSON5 content with potential Infinity and NaN literals
+     * @return JSON content with Infinity and NaN converted to null
+     * @throws IllegalArgumentException if input is null
+     */
+    public static String convertInfinityAndNaN(String json5) {
+        if (json5 == null) {
+            throw new IllegalArgumentException("Input cannot be null");
+        }
+        
+        if (json5.isEmpty()) {
+            return json5;
+        }
+        
+        StringBuilder result = new StringBuilder(json5.length());
+        int length = json5.length();
+        boolean inString = false;
+        boolean escaped = false;
+        
+        for (int i = 0; i < length; i++) {
+            char current = json5.charAt(i);
+            
+            if (!inString) {
+                if (current == '"') {
+                    inString = true;
+                    result.append(current);
+                } else if (current == 'I' && matchesWordAt(json5, i, "Infinity")) {
+                    result.append("null");
+                    i += "Infinity".length() - 1; // -1 because loop will increment
+                } else if (current == 'N' && matchesWordAt(json5, i, "NaN")) {
+                    result.append("null");
+                    i += "NaN".length() - 1; // -1 because loop will increment
+                } else {
+                    result.append(current);
+                }
+            } else {
+                // Inside string
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (current == '"') {
+                    inString = false;
+                }
+                result.append(current);
+            }
+        }
+        
+        return result.toString();
+    }
+    
+    /**
+     * Helper method to check if a word matches at a given position.
+     */
+    private static boolean matchesWordAt(String text, int index, String word) {
+        if (index + word.length() > text.length()) {
+            return false;
+        }
+        
+        // Check if the word matches
+        for (int i = 0; i < word.length(); i++) {
+            if (text.charAt(index + i) != word.charAt(i)) {
+                return false;
+            }
+        }
+        
+        // Check that it's a complete word (not part of another identifier)
+        int afterIndex = index + word.length();
+        if (afterIndex < text.length()) {
+            char afterChar = text.charAt(afterIndex);
+            if (Character.isLetterOrDigit(afterChar) || afterChar == '_') {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Converts multiline strings to single-line JSON strings with proper escaping.
+     * Only processes newlines that are inside JSON string values, preserving
+     * JSON structure newlines.
+     * 
+     * @param json5 JSON5 content with potential multiline strings
+     * @return JSON content with multiline strings converted
+     * @throws IllegalArgumentException if input is null
+     */
+    public static String convertMultilineStrings(String json5) {
+        if (json5 == null) {
+            throw new IllegalArgumentException("Input cannot be null");
+        }
+        
+        if (json5.isEmpty()) {
+            return json5;
+        }
+        
+        StringBuilder result = new StringBuilder(json5.length());
+        int length = json5.length();
+        boolean inString = false;
+        boolean escaped = false;
+        
+        for (int i = 0; i < length; i++) {
+            char current = json5.charAt(i);
+            
+            if (!inString) {
+                // Outside strings - preserve all characters including newlines
+                if (current == '"') {
+                    inString = true;
+                }
+                result.append(current);
+            } else {
+                // Inside string
+                if (escaped) {
+                    escaped = false;
+                    result.append(current);
+                } else if (current == '\\') {
+                    escaped = true;
+                    result.append(current);
+                } else if (current == '"') {
+                    inString = false;
+                    result.append(current);
+                } else if (current == '\r') {
+                    // Convert carriage return to escaped \r
+                    result.append("\\r");
+                } else if (current == '\n') {
+                    // Convert newline to escaped \n
+                    result.append("\\n");
+                } else {
+                    result.append(current);
+                }
+            }
+        }
+        
+        return result.toString();
+    }
+    
+    /**
+     * Escapes unescaped control characters in strings for JSON compliance.
+     * Handles common control characters like tab, newline, etc.
+     * 
+     * @param json5 JSON5 content with potential unescaped control characters
+     * @return JSON content with control characters properly escaped
+     * @throws IllegalArgumentException if input is null
+     */
+    public static String escapeControlChars(String json5) {
+        if (json5 == null) {
+            throw new IllegalArgumentException("Input cannot be null");
+        }
+        
+        if (json5.isEmpty()) {
+            return json5;
+        }
+        
+        StringBuilder result = new StringBuilder(json5.length());
+        int length = json5.length();
+        boolean inString = false;
+        boolean escaped = false;
+        
+        for (int i = 0; i < length; i++) {
+            char current = json5.charAt(i);
+            
+            if (!inString) {
+                if (current == '"') {
+                    inString = true;
+                }
+                result.append(current);
+            } else {
+                // Inside string
+                if (escaped) {
+                    escaped = false;
+                    result.append(current);
+                } else if (current == '\\') {
+                    escaped = true;
+                    result.append(current);
+                } else if (current == '"') {
+                    inString = false;
+                    result.append(current);
+                } else if (current < 32 && current != '\t' && current != '\n' && current != '\r') {
+                    // Escape control characters (except common ones like tab, newline)
+                    result.append(String.format("\\u%04x", (int) current));
+                } else {
+                    result.append(current);
+                }
+            }
+        }
+        
+        return result.toString();
+    }
 }

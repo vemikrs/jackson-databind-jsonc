@@ -7,6 +7,12 @@
 ## 特長
 
 - JSONC 形式をサポート（ブロックコメント `/* */` と 行末コメント `//`）
+- **新機能**: Builder パターンによるオプションのJSON5機能
+  - シングルクォート文字列（`'text'` → `"text"`）
+  - 16進数リテラル（`0xFF` → `255`）
+  - プラス記号付き数値（`+123` → `123`）
+  - 無限大やNaN（`Infinity`/`NaN` → `null`）
+  - 複数行文字列とエスケープされていない制御文字
 - Jackson の `JsonMapper` を拡張
 - 複数の Java バージョンをサポート（Java 8, 11, 17, 21, 24）
 - 利用シーンに応じた 2 つの配布形式を提供
@@ -40,12 +46,86 @@
 - **ネストコメント**: `/* 外側 /* 内側 */ 外側 */` - サポートされていません
 - **JSON5のその他機能**: オブジェクトキーの引用符省略等
 
-### 🔧 オプション機能
-- **トレーリングカンマ除去**: Builder パターンで有効化可能
+### 🔧 オプションのJSON5機能
+すべてのJSON5機能はデフォルトで無効になっており、Builder パターンで個別に有効化できます：
+
+#### トレーリングカンマ除去
 ```java
 JsoncMapper mapper = new JsoncMapper.Builder()
     .allowTrailingCommas(true)
     .build();
+```
+
+#### シングルクォート文字列
+シングルクォート文字列をダブルクォートJSON形式に変換：
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowSingleQuotes(true)
+    .build();
+
+// 入力: { 'key': 'value' }
+// 出力: { "key": "value" }
+```
+
+#### 16進数リテラル
+16進数リテラルを10進数形式に変換：
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowHexNumbers(true)
+    .build();
+
+// 入力: { "value": 0xFF }
+// 出力: { "value": 255 }
+```
+
+#### プラス記号付き数値
+正の数値から明示的なプラス記号を除去：
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowPlusNumbers(true)
+    .build();
+
+// 入力: { "value": +123 }
+// 出力: { "value": 123 }
+```
+
+#### 無限大とNaN
+JavaScript形式のInfinityとNaNをJSONのnullに変換：
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowInfinityAndNaN(true)
+    .build();
+
+// 入力: { "inf": Infinity, "nan": NaN }
+// 出力: { "inf": null, "nan": null }
+```
+
+#### すべての機能を組み合わせ
+複数のJSON5機能を同時に有効化：
+```java
+JsoncMapper mapper = new JsoncMapper.Builder()
+    .allowTrailingCommas(true)
+    .allowSingleQuotes(true)
+    .allowHexNumbers(true)
+    .allowPlusNumbers(true)
+    .allowInfinityAndNaN(true)
+    .allowMultilineStrings(true)
+    .allowUnescapedControlChars(true)
+    .build();
+
+// 複雑なJSON5入力をパース
+String json5 = """
+{
+    /* 設定 */
+    'name': 'My App',        // シングルクォート
+    "version": 0xFF,         // 16進数
+    'port': +8080,           // プラス記号付き数値
+    "maxValue": Infinity,    // 無限大
+    'enabled': true,         // トレーリングカンマ
+}
+""";
+
+MyConfig config = mapper.readValue(json5, MyConfig.class);
 ```
 
 ## 要件

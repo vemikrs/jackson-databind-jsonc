@@ -215,4 +215,130 @@ public class SecurityTest {
         assertNotNull(result);
         assertFalse(result.contains(", }"));
     }
+
+    // Security Tests for JSON5 Features
+    
+    @Test
+    @Timeout(value = 3, unit = TimeUnit.SECONDS)
+    public void testSingleQuoteReDoSProtection() {
+        // Test with many nested single quotes that could cause performance issues
+        StringBuilder maliciousInput = new StringBuilder("{ ");
+        for (int i = 0; i < 1000; i++) {
+            maliciousInput.append("'key").append(i).append("': 'value").append(i).append("', ");
+        }
+        maliciousInput.append("'final': 'value' }");
+        
+        String result = JsoncUtils.convertSingleQuotes(maliciousInput.toString());
+        assertNotNull(result);
+        assertTrue(result.contains("\"final\": \"value\""));
+    }
+    
+    @Test
+    @Timeout(value = 3, unit = TimeUnit.SECONDS)
+    public void testHexNumberReDoSProtection() {
+        // Test with many hex numbers that could cause performance issues
+        StringBuilder maliciousInput = new StringBuilder("{ ");
+        for (int i = 0; i < 1000; i++) {
+            maliciousInput.append("\"key").append(i).append("\": 0x").append(Integer.toHexString(i)).append(", ");
+        }
+        maliciousInput.append("\"final\": 0xFF }");
+        
+        String result = JsoncUtils.convertHexNumbers(maliciousInput.toString());
+        assertNotNull(result);
+        assertTrue(result.contains("\"final\": 255"));
+    }
+    
+    @Test
+    @Timeout(value = 3, unit = TimeUnit.SECONDS)
+    public void testPlusNumberReDoSProtection() {
+        // Test with many plus numbers that could cause performance issues
+        StringBuilder maliciousInput = new StringBuilder("{ ");
+        for (int i = 0; i < 1000; i++) {
+            maliciousInput.append("\"key").append(i).append("\": +").append(i).append(", ");
+        }
+        maliciousInput.append("\"final\": +999 }");
+        
+        String result = JsoncUtils.removePlusFromNumbers(maliciousInput.toString());
+        assertNotNull(result);
+        assertTrue(result.contains("\"final\": 999"));
+    }
+    
+    @Test
+    @Timeout(value = 3, unit = TimeUnit.SECONDS)
+    public void testInfinityNaNReDoSProtection() {
+        // Test with many Infinity/NaN values
+        StringBuilder maliciousInput = new StringBuilder("{ ");
+        for (int i = 0; i < 500; i++) {
+            maliciousInput.append("\"inf").append(i).append("\": Infinity, ");
+            maliciousInput.append("\"nan").append(i).append("\": NaN, ");
+        }
+        maliciousInput.append("\"final\": Infinity }");
+        
+        String result = JsoncUtils.convertInfinityAndNaN(maliciousInput.toString());
+        assertNotNull(result);
+        assertTrue(result.contains("\"final\": null"));
+    }
+    
+    @Test
+    public void testJson5StringProtection() {
+        // Test that JSON5 features don't affect strings containing similar patterns
+        String json5 = "{ \"message\": \"Don't convert 'single quotes' or 0xFF or +123 or Infinity in strings\", " +
+                      "'actualSingle': 'value', \"actualHex\": 0xFF, \"actualPlus\": +123, \"actualInf\": Infinity }";
+        
+        String step1 = JsoncUtils.convertSingleQuotes(json5);
+        String step2 = JsoncUtils.convertHexNumbers(step1);
+        String step3 = JsoncUtils.removePlusFromNumbers(step2);
+        String step4 = JsoncUtils.convertInfinityAndNaN(step3);
+        
+        // String content should be preserved
+        assertTrue(step4.contains("'single quotes'"));
+        assertTrue(step4.contains("or 0xFF or"));
+        assertTrue(step4.contains("or +123 or"));
+        assertTrue(step4.contains("or Infinity in"));
+        
+        // But actual JSON5 features should be converted
+        assertTrue(step4.contains("\"actualSingle\": \"value\""));
+        assertTrue(step4.contains("\"actualHex\": 255"));
+        assertTrue(step4.contains("\"actualPlus\": 123"));
+        assertTrue(step4.contains("\"actualInf\": null"));
+    }
+    
+    @Test
+    public void testJson5MalformedInput() {
+        // Test with malformed JSON5 that could cause issues
+        String malformed1 = "{ 'unclosed string }";
+        String result1 = JsoncUtils.convertSingleQuotes(malformed1);
+        assertNotNull(result1);
+        
+        String malformed2 = "{ \"value\": 0x }";  // Invalid hex
+        String result2 = JsoncUtils.convertHexNumbers(malformed2);
+        assertNotNull(result2);
+        assertEquals(malformed2, result2); // Should remain unchanged
+        
+        String malformed3 = "{ \"value\": + }";  // Invalid plus number
+        String result3 = JsoncUtils.removePlusFromNumbers(malformed3);
+        assertNotNull(result3);
+        assertEquals(malformed3, result3); // Should remain unchanged
+    }
+    
+    @Test
+    @Timeout(value = 2, unit = TimeUnit.SECONDS)
+    public void testJson5CombinedWithLargeInput() {
+        // Test JSON5 features with large input similar to other security tests
+        StringBuilder largeInput = new StringBuilder();
+        for (int i = 0; i < 10000; i++) {
+            largeInput.append("'key").append(i).append("': 'value with 0xFF and +123',");
+        }
+        largeInput.append("'final': 'done'");
+        
+        String json5 = "{ " + largeInput.toString() + " }";
+        
+        // Apply all transformations
+        String result = JsoncUtils.convertSingleQuotes(json5);
+        result = JsoncUtils.convertHexNumbers(result);
+        result = JsoncUtils.removePlusFromNumbers(result);
+        
+        assertNotNull(result);
+        assertTrue(result.contains("\"final\": \"done\""));
+    }
 }
