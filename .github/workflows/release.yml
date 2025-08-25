@@ -1,9 +1,17 @@
+---
 name: Release
 
-on:
+"on":
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: false
+        type: string
+
 permissions:
   contents: write
   issues: write
@@ -11,7 +19,7 @@ permissions:
   deployments: write
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -43,3 +51,13 @@ jobs:
           files: |
             lib/build/libs/jackson-databind-jsonc-*.jar
           generate_release_notes: true
+
+      - name: Publish to Maven Central
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          echo "Publishing to Maven Central..."
+          ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository
