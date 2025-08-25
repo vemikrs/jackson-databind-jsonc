@@ -832,6 +832,148 @@ public class JsoncMapperTest {
         assertEquals(true, result.get("enabled"));
     }
 
+    @Test
+    public void testEnableJson5FeaturesTrue() throws Exception {
+        // Test that enableJson5Features(true) enables all JSON5 features
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .enableJson5Features(true)
+                .build();
+        
+        // Test with multiple features
+        String json5 = "{\n" +
+                "  /* Comments */\n" +
+                "  'singleQuotes': 'value',\n" +
+                "  \"hexNumber\": 0xFF,\n" +
+                "  'plusNumber': +42,\n" +
+                "  \"trailingComma\": true,\n" +
+                "}";
+        
+        Map<String, Object> result = mapper.readValue(json5, new TypeReference<Map<String, Object>>() {});
+        
+        assertEquals("value", result.get("singleQuotes"));
+        assertEquals(255, result.get("hexNumber"));
+        assertEquals(42, result.get("plusNumber"));
+        assertEquals(true, result.get("trailingComma"));
+    }
+
+    @Test
+    public void testEnableJson5FeaturesFalse() throws Exception {
+        // Test that enableJson5Features(false) disables all JSON5 features
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .enableJson5Features(false)
+                .build();
+        
+        // Only comments should be processed (basic JSONC functionality)
+        String jsonc = "{ /* comment */ \"key\": \"value\" }";
+        
+        MyClass result = mapper.readValue(jsonc, MyClass.class);
+        assertEquals("value", result.getKey());
+        
+        // JSON5 features should not work
+        String json5WithSingleQuotes = "{ 'key': 'value' }";
+        
+        assertThrows(JsonProcessingException.class, () -> {
+            mapper.readValue(json5WithSingleQuotes, MyClass.class);
+        });
+    }
+
+    @Test
+    public void testEnableJson5FeaturesEquivalentToIndividualSettings() throws Exception {
+        // Test that enableJson5Features(true) is equivalent to setting core individual features
+        JsoncMapper mapper1 = new JsoncMapper.Builder()
+                .enableJson5Features(true)
+                .build();
+        
+        JsoncMapper mapper2 = new JsoncMapper.Builder()
+                .allowTrailingCommas(true)
+                .allowSingleQuotes(true)
+                .allowHexNumbers(true)
+                .allowPlusNumbers(true)
+                .allowInfinityAndNaN(true)
+                .build();
+        
+        String json5 = "{\n" +
+                "  /* Comments */\n" +
+                "  'name': 'test',\n" +
+                "  \"hex\": 0x10,\n" +
+                "  'plus': +123,\n" +
+                "  \"trailing\": true,\n" +
+                "}";
+        
+        Map<String, Object> result1 = mapper1.readValue(json5, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> result2 = mapper2.readValue(json5, new TypeReference<Map<String, Object>>() {});
+        
+        assertEquals(result1, result2);
+    }
+
+    @Test
+    public void testEnableJson5FeaturesCanBeOverridden() throws Exception {
+        // Test that individual settings can override enableJson5Features
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .enableJson5Features(true)
+                .allowSingleQuotes(false) // Override to disable single quotes
+                .build();
+        
+        // Single quotes should not work due to override
+        String json5WithSingleQuotes = "{ 'key': 'value' }";
+        
+        assertThrows(JsonProcessingException.class, () -> {
+            mapper.readValue(json5WithSingleQuotes, MyClass.class);
+        });
+        
+        // But other JSON5 features should still work
+        String json5WithHex = "{ \"hex\": 0xFF, \"trailing\": true, }";
+        
+        Map<String, Object> result = mapper.readValue(json5WithHex, new TypeReference<Map<String, Object>>() {});
+        assertEquals(255, result.get("hex"));
+        assertEquals(true, result.get("trailing"));
+    }
+
+    @Test
+    public void testEnableJson5FeaturesWithDefaultConstructor() throws Exception {
+        // Test that default constructor behavior is same as enableJson5Features(false)
+        JsoncMapper defaultMapper = new JsoncMapper();
+        JsoncMapper builderMapper = new JsoncMapper.Builder()
+                .enableJson5Features(false)
+                .build();
+        
+        String jsonc = "{ /* comment */ \"key\": \"value\" }";
+        
+        MyClass result1 = defaultMapper.readValue(jsonc, MyClass.class);
+        MyClass result2 = builderMapper.readValue(jsonc, MyClass.class);
+        
+        assertEquals(result1.getKey(), result2.getKey());
+        
+        // Both should reject JSON5 syntax
+        String json5 = "{ 'key': 'value' }";
+        
+        assertThrows(JsonProcessingException.class, () -> {
+            defaultMapper.readValue(json5, MyClass.class);
+        });
+        
+        assertThrows(JsonProcessingException.class, () -> {
+            builderMapper.readValue(json5, MyClass.class);
+        });
+    }
+
+    @Test
+    public void testEnableJson5FeaturesWithAdditionalFeatures() throws Exception {
+        // Test that additional features can be enabled after enableJson5Features()
+        JsoncMapper mapper = new JsoncMapper.Builder()
+                .enableJson5Features(true)
+                .allowMultilineStrings(true)
+                .allowUnescapedControlChars(true)
+                .build();
+        
+        // Test that core JSON5 features still work
+        String json5 = "{ 'key': 'value', \"hex\": 0xFF, 'trailing': true, }";
+        
+        Map<String, Object> result = mapper.readValue(json5, new TypeReference<Map<String, Object>>() {});
+        assertEquals("value", result.get("key"));
+        assertEquals(255, result.get("hex"));
+        assertEquals(true, result.get("trailing"));
+    }
+
     static class MyClass {
         private String key;
         public String getKey() { return key; }

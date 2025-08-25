@@ -170,6 +170,48 @@ public class JsoncMapper extends JsonMapper {
         }
         
         /**
+         * Convenience method to enable or disable core JSON5 features at once.
+         * This includes the most commonly used and stable JSON5 features:
+         * <ul>
+         *   <li>Trailing commas in objects and arrays</li>
+         *   <li>Single-quoted strings</li>
+         *   <li>Hexadecimal number literals</li>
+         *   <li>Numbers with explicit plus signs</li>
+         *   <li>Infinity and NaN literals</li>
+         * </ul>
+         * 
+         * <p>Note: This does not enable multiline strings or unescaped control characters
+         * as these features may interfere with regular JSON formatting. These can be
+         * enabled separately if needed using the individual methods.
+         * 
+         * <p>Example usage:
+         * <pre>{@code
+         * // Enable core JSON5 features
+         * JsoncMapper mapper = new JsoncMapper.Builder()
+         *     .enableJson5Features(true)
+         *     .build();
+         * 
+         * // Disable all core JSON5 features (equivalent to default JsoncMapper)
+         * JsoncMapper mapper = new JsoncMapper.Builder()
+         *     .enableJson5Features(false)
+         *     .build();
+         * }</pre>
+         * 
+         * @param enable true to enable core JSON5 features, false to disable them all
+         * @return this builder for method chaining
+         */
+        public Builder enableJson5Features(boolean enable) {
+            this.removeTrailingCommas = enable;
+            this.allowSingleQuotes = enable;
+            this.allowHexNumbers = enable;
+            this.allowPlusNumbers = enable;
+            this.allowInfinityAndNaN = enable;
+            // Note: multiline strings and unescaped control chars are excluded
+            // as they can interfere with standard JSON formatting
+            return this;
+        }
+        
+        /**
          * Build a new JsoncMapper with the configured options.
          * 
          * @return configured JsoncMapper instance
