@@ -133,14 +133,22 @@ tasks {
     }
 }
 
+// Check for publishing credentials
+val ossrhUsername = project.findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME")
+val ossrhPassword = project.findProperty("ossrhPassword") as String? ?: System.getenv("OSSRH_PASSWORD")
+val hasOssrhCredentials = !ossrhUsername.isNullOrEmpty() && !ossrhPassword.isNullOrEmpty()
+
 // GPG Signing Configuration
 signing {
     val signingKey = System.getenv("GPG_PRIVATE_KEY")
     val signingPassword = System.getenv("GPG_PASSPHRASE")
+    val hasSigningCredentials = !signingKey.isNullOrEmpty() && !signingPassword.isNullOrEmpty()
     
-    if (signingKey != null && signingPassword != null) {
+    if (hasSigningCredentials) {
         useInMemoryPgpKeys(signingKey, signingPassword)
         sign(publishing.publications)
+    } else {
+        println("GPG signing credentials not found, artifacts will not be signed")
     }
 }
 
