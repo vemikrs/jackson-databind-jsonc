@@ -44,6 +44,12 @@ jobs:
         run: |
           echo "Built artifacts:"
           find lib/build/libs -name "*.jar" -ls
+          echo ""
+          echo "Release artifacts:"
+          echo "- Slim JAR (recommended): $(find lib/build/libs -name "jackson-databind-jsonc-*.jar" | grep -v sources | grep -v javadoc | grep -v all | grep -v shadow)"
+          echo "- Fat JAR (all-in-one):   $(find lib/build/libs -name "jackson-databind-jsonc-*-all.jar")"
+          echo "- Sources JAR:            $(find lib/build/libs -name "*sources.jar")"
+          echo "- Javadoc JAR:            $(find lib/build/libs -name "*javadoc.jar")"
           
       - name: Create Release
         uses: softprops/action-gh-release@v2
