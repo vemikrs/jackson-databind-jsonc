@@ -58,53 +58,27 @@ jobs:
             lib/build/libs/jackson-databind-jsonc-*.jar
           generate_release_notes: true
 
-      - name: Verify Sonatype Configuration
-        env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Maven Central Portal Publishing Guide
         run: |
-          echo "Verifying Sonatype configuration..."
-          ./gradlew validateCredentials
-          
-      - name: Publish to Maven Central (if credentials available)
-        env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        run: |
-          if [ -z "$OSSRH_USERNAME" ] || [ -z "$OSSRH_PASSWORD" ]; then
-            echo "⚠️ OSSRH credentials not set. Skipping Maven Central publishing."
-            echo "Publishing to local repository only..."
-            ./gradlew publishLocalOnly
-            echo "✓ Local publishing completed. To publish to Maven Central:"
-            echo "  1. Set OSSRH_USERNAME and OSSRH_PASSWORD secrets"
-            echo "  2. Set GPG_PRIVATE_KEY and GPG_PASSPHRASE secrets"
-            echo "  3. Optionally set SONATYPE_STAGING_PROFILE_ID secret"
-            exit 0
-          fi
-          
-          echo "📦 Publishing to Maven Central..."
-          echo "Step 1: Build and publish to Sonatype staging..."
-          if ! ./gradlew publishToSonatype --info --stacktrace --no-daemon; then
-            echo "❌ Failed to publish to Sonatype staging"
-            echo "This might be due to:"
-            echo "  - Invalid OSSRH credentials" 
-            echo "  - Missing staging profile ID"
-            echo "  - Network issues"
-            echo ""
-            echo "💡 Try setting SONATYPE_STAGING_PROFILE_ID secret to avoid profile discovery"
-            exit 1
-          fi
-          
-          echo "Step 2: Close and release staging repository..."
-          if ! ./gradlew closeAndReleaseSonatypeStagingRepository --info --stacktrace --no-daemon; then
-            echo "❌ Failed to close and release staging repository"
-            echo "The artifacts may have been published to staging but not released"
-            echo "Check https://s01.oss.sonatype.org/ for manual release"
-            exit 1
-          fi
-          
-          echo "✅ Successfully published to Maven Central!"
+          echo "📋 Maven Central Publishing Information"
+          echo "======================================"
+          echo ""
+          echo "⚠️  IMPORTANT: Sonatype OSSRH is being discontinued (June 30, 2025)"
+          echo "   This workflow no longer supports automatic OSSRH publishing."
+          echo ""
+          echo "📦 Built Artifacts:"
+          echo "   • Slim JAR: lib/build/libs/jackson-databind-jsonc-*.jar"
+          echo "   • Fat JAR:  lib/build/libs/jackson-databind-jsonc-*-all.jar"
+          echo ""
+          echo "🚀 To publish to Maven Central Portal:"
+          echo "   1. Visit: https://central.sonatype.com/"
+          echo "   2. Sign in with your Sonatype account"
+          echo "   3. Upload the generated JAR files from this release"
+          echo "   4. Follow the Central Portal publishing workflow"
+          echo ""
+          echo "📚 Migration Guide:"
+          echo "   • OSSRH Sunset: https://central.sonatype.org/pages/ossrh-eol/"
+          echo "   • New Portal: https://central.sonatype.com/"
+          echo "   • Gradle Migration: https://www.endoflineblog.com/migrate-maven-central-publishing-to-central-portal-for-a-gradle-project"
+          echo ""
+          echo "ℹ️  This release includes GitHub artifacts that can be manually uploaded to Central Portal."

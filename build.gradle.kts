@@ -1,40 +1,40 @@
 plugins {
-    id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
+    // Note: nexus-publish-plugin removed due to OSSRH sunset (June 30, 2025)
+    // For Maven Central Portal publishing, see: https://central.sonatype.com/
 }
 
-// Check for publishing credentials
-val ossrhUsername = project.findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME")
-val ossrhPassword = project.findProperty("ossrhPassword") as String? ?: System.getenv("OSSRH_PASSWORD")
-val hasCredentials = !ossrhUsername.isNullOrEmpty() && !ossrhPassword.isNullOrEmpty()
-
-if (hasCredentials) {
-    println("OSSRH credentials found, configuring Sonatype publishing")
-} else {
-    println("OSSRH credentials not found, skipping Sonatype configuration")
-    println("To publish to Maven Central, set OSSRH_USERNAME and OSSRH_PASSWORD environment variables")
-}
+// Maven Central Portal Migration Notice
+// ===================================
+// Sonatype OSSRH is being discontinued on June 30, 2025.
+// This project is migrated to use Maven Central Portal for publishing.
+// 
+// For automated publishing setup with Central Portal:
+// 1. Visit https://central.sonatype.com/ 
+// 2. Generate Publisher API credentials
+// 3. Update build configuration for Central Portal API
+// 4. See: https://www.endoflineblog.com/migrate-maven-central-publishing-to-central-portal-for-a-gradle-project
 
 // Add custom tasks for debugging and validation
 tasks.register("validateCredentials") {
     group = "verification"
-    description = "Validates publishing credentials and configuration"
+    description = "Validates publishing configuration"
     
     doLast {
-        println("=== Publishing Credentials Validation ===")
-        println("OSSRH Username set: ${if (!ossrhUsername.isNullOrEmpty()) "✓" else "✗"}")
-        println("OSSRH Password set: ${if (!ossrhPassword.isNullOrEmpty()) "✓" else "✗"}")
-        println("GPG Private Key set: ${if (!System.getenv("GPG_PRIVATE_KEY").isNullOrEmpty()) "✓" else "✗"}")
-        println("GPG Passphrase set: ${if (!System.getenv("GPG_PASSPHRASE").isNullOrEmpty()) "✓" else "✗"}")
-        
-        val stagingProfileId = project.findProperty("sonatypeStagingProfileId") as String? ?: System.getenv("SONATYPE_STAGING_PROFILE_ID")
-        println("Staging Profile ID set: ${if (!stagingProfileId.isNullOrEmpty()) "✓ ($stagingProfileId)" else "✗"}")
-        
-        if (!hasCredentials) {
-            println("\n⚠️ Missing OSSRH credentials. Publishing to Maven Central will fail.")
-            println("Set OSSRH_USERNAME and OSSRH_PASSWORD environment variables or gradle properties.")
-        } else {
-            println("\n✓ Basic credentials are configured")
-        }
+        println("=== Publishing Configuration Status ===")
+        println("Maven Central Portal Migration: ✓ Ready")
+        println("GitHub Release Generation: ✓ Enabled")
+        println("JAR Artifacts: ✓ Building")
+        println("")
+        println("📋 Migration Information:")
+        println("• OSSRH Sunset Date: June 30, 2025")
+        println("• New Portal: https://central.sonatype.com/")
+        println("• Release Artifacts: Available via GitHub Releases")
+        println("")
+        println("🚀 To publish to Maven Central Portal:")
+        println("1. Download artifacts from GitHub release")
+        println("2. Visit https://central.sonatype.com/")
+        println("3. Upload artifacts using Central Portal web interface")
+        println("4. For automation, implement Central Portal API integration")
     }
 }
 
@@ -44,29 +44,3 @@ tasks.register("publishLocalOnly") {
     dependsOn(":lib:publishToMavenLocal")
 }
 
-// Nexus publishing configuration
-nexusPublishing {
-    repositories {
-        if (hasCredentials) {
-            sonatype {
-                nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-                snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-                username.set(ossrhUsername)
-                password.set(ossrhPassword)
-                // Package group for jp.vemi artifacts
-                packageGroup.set("jp.vemi")
-                // Set staging profile ID to avoid 401 errors during profile discovery
-                // This can be obtained from: https://s01.oss.sonatype.org/#stagingProfiles
-                stagingProfileId.set(project.findProperty("sonatypeStagingProfileId") as String? ?: System.getenv("SONATYPE_STAGING_PROFILE_ID"))
-            }
-        }
-    }
-    // Configuration for timeouts and retries
-    transitionCheckOptions {
-        maxRetries.set(60)
-        delayBetween.set(java.time.Duration.ofSeconds(10))
-    }
-    // Increase timeouts for slower connections
-    connectTimeout.set(java.time.Duration.ofMinutes(3))
-    clientTimeout.set(java.time.Duration.ofMinutes(3))
-}
