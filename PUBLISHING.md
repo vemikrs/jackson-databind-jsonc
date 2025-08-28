@@ -1,60 +1,65 @@
 # Publishing Guide
 
-This document explains how to publish releases to Maven Central using the new Central Portal and manage the CI/CD process.
+This document explains how to publish releases to Maven Central using the automated Central Portal workflow and manage the CI/CD process.
 
-> **⚠️ IMPORTANT**: Sonatype OSSRH is being discontinued on June 30, 2025. This project has been migrated to support the new Maven Central Portal for publishing.
+> **✅ SUCCESS**: This project now supports fully automated publishing to Maven Central using Central Portal API integration.
 
-## Release Process
+## Release Process Overview
 
-### 1. Publishing Prerequisites
+The release process is now split into separate workflows:
 
-To publish to Maven Central Portal, you need:
+1. **Build Workflow** (`.github/workflows/build.yml`) - Runs on every push/PR
+2. **Release Workflow** (`.github/workflows/release.yml`) - Runs on tags and publishes to Maven Central
 
-**Required for Maven Central Portal:**
-- Maven Central Portal account: https://central.sonatype.com/
-- Publisher API credentials (for automation)
-- GPG signing key (optional - can be done during upload)
+### 1. Automated Release Process
 
-**Optional for GitHub Actions:**
+**Trigger a Release:**
+- **Git Tag**: Push a tag like `v1.0.5` to automatically trigger release and Maven Central publishing
+- **Manual**: Use GitHub Actions "workflow_dispatch" with version input and optional skip options
+
+**What Happens Automatically:**
+1. **Build Artifacts**: Creates slim JAR, fat JAR, sources JAR, and javadoc JAR
+2. **GitHub Release**: Creates release with JAR attachments and release notes
+3. **Maven Central Publishing**: Automatically uploads and publishes to Maven Central Portal
+4. **Validation**: Verifies artifacts are available on Maven Central
+
+### 2. Prerequisites for Automated Publishing
+
+**Required GitHub Secrets:**
+- `CENTRAL_PORTAL_USERNAME`: Your Central Portal username
+- `CENTRAL_PORTAL_PASSWORD`: Your Central Portal password/token
 - `GPG_PRIVATE_KEY`: GPG private key for signing artifacts (optional)
 - `GPG_PASSPHRASE`: GPG key passphrase (optional)
 
-### 2. GitHub Release Workflow
+**Setup Central Portal Credentials:**
+1. Visit https://central.sonatype.com/
+2. Sign in with your Sonatype account
+3. Generate Publisher API credentials
+4. Add credentials as GitHub repository secrets
 
-The release workflow (`.github/workflows/release.yml`) handles:
+### 3. Manual Release (Fallback)
 
-1. **Building artifacts** - Creates both slim and fat JARs
-2. **GitHub Release** - Creates release with JAR attachments  
-3. **Central Portal Guidance** - Provides instructions for manual upload
+If automated publishing fails, you can skip Maven Central and upload manually:
 
-**Trigger Methods:**
-- **Git Tag**: Push a tag like `v1.0.0` to automatically trigger release
-- **Manual**: Use GitHub Actions "workflow_dispatch" with version input
+1. **Trigger with skip option**: Use workflow_dispatch with `skip_maven_central: true`
+2. **Download from GitHub**: Get artifacts from the created GitHub release
+3. **Manual upload**: Upload to https://central.sonatype.com/
 
-### 3. Maven Central Portal Publishing
+### 4. Local Development and Testing
 
-Since OSSRH is deprecated, publishing now follows this process:
+```bash
+# Validate Central Portal credentials  
+./gradlew validateCredentials
 
-1. **Automated Release**: Push a git tag or trigger workflow manually
-2. **Download Artifacts**: Get JAR files from the GitHub release
-3. **Upload to Central Portal**: 
-   - Visit https://central.sonatype.com/
-   - Sign in with your Sonatype account
-   - Upload the JAR files manually
-   - Follow Central Portal publishing workflow
+# Publish to local Maven repository only
+./gradlew publishLocalOnly
 
-### 4. Future Automation Setup
+# Build all release artifacts
+./gradlew clean build fatJar
 
-For automated Central Portal publishing, you can implement:
-
-1. **Central Portal API Integration**: Replace OSSRH with Central Portal API
-2. **Publisher API Credentials**: Set up API tokens for automated uploads
-3. **Updated Build Scripts**: Modify Gradle configuration for Central Portal
-
-**Migration Resources:**
-- [OSSRH Sunset Information](https://central.sonatype.org/pages/ossrh-eol/)
-- [Central Portal Documentation](https://central.sonatype.com/)
-- [Gradle Migration Guide](https://www.endoflineblog.com/migrate-maven-central-publishing-to-central-portal-for-a-gradle-project)
+# Test Central Portal publishing (requires credentials)
+./gradlew publishToCentralPortal
+```
 
 ## Troubleshooting
 

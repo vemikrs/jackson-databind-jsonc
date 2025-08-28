@@ -1,41 +1,75 @@
+import java.time.Duration
+
 plugins {
-    // Note: nexus-publish-plugin removed due to OSSRH sunset (June 30, 2025)
-    // For Maven Central Portal publishing, see: https://central.sonatype.com/
+    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
 }
 
-// Maven Central Portal Migration Notice
-// ===================================
-// Sonatype OSSRH is being discontinued on June 30, 2025.
-// This project is migrated to use Maven Central Portal for publishing.
+// Maven Central Portal Configuration
+// ================================
+// This project uses Maven Central Portal for publishing.
 // 
-// For automated publishing setup with Central Portal:
-// 1. Visit https://central.sonatype.com/ 
-// 2. Generate Publisher API credentials
-// 3. Update build configuration for Central Portal API
-// 4. See: https://www.endoflineblog.com/migrate-maven-central-publishing-to-central-portal-for-a-gradle-project
+// Required environment variables for automated publishing:
+// - CENTRAL_PORTAL_USERNAME: Central Portal username 
+// - CENTRAL_PORTAL_PASSWORD: Central Portal password/token
+// 
+// Setup guide: https://central.sonatype.org/publish/generate-portal-token/
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            // Central Portal configuration via nexus-publish-plugin
+            nexusUrl.set(uri("https://central.sonatype.com/api/v1/publisher/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/api/v1/publisher/"))
+            
+            username.set(System.getenv("CENTRAL_PORTAL_USERNAME") ?: "")
+            password.set(System.getenv("CENTRAL_PORTAL_PASSWORD") ?: "")
+        }
+    }
+    
+    // Configure timeouts for publishing
+    connectTimeout.set(Duration.ofMinutes(3))
+    clientTimeout.set(Duration.ofMinutes(3))
+    
+    // Transition check settings
+    transitionCheckOptions {
+        maxRetries.set(60)
+        delayBetween.set(Duration.ofSeconds(10))
+    }
+}
+
+// Add publishing tasks for validation
+tasks.register("checkCentralPortalCredentials") {
+    group = "verification"
+    description = "Validates Central Portal publishing configuration"
+    
+    doLast {
+        val username = System.getenv("CENTRAL_PORTAL_USERNAME")
+        val password = System.getenv("CENTRAL_PORTAL_PASSWORD")
+        
+        println("=== Central Portal Configuration ===")
+        println("Username configured: ${if (!username.isNullOrEmpty()) "✓" else "✗"}")
+        println("Password configured: ${if (!password.isNullOrEmpty()) "✓" else "✗"}")
+        println("")
+        
+        if (username.isNullOrEmpty() || password.isNullOrEmpty()) {
+            println("⚠️  Missing Central Portal credentials")
+            println("Required environment variables:")
+            println("• CENTRAL_PORTAL_USERNAME")
+            println("• CENTRAL_PORTAL_PASSWORD")
+            println("")
+            println("📚 Setup guide: https://central.sonatype.org/publish/generate-portal-token/")
+        } else {
+            println("✅ Central Portal credentials configured")
+            println("Ready for automated publishing!")
+        }
+    }
+}
 
 // Add custom tasks for debugging and validation
 tasks.register("validateCredentials") {
     group = "verification"
     description = "Validates publishing configuration"
-    
-    doLast {
-        println("=== Publishing Configuration Status ===")
-        println("Maven Central Portal Migration: ✓ Ready")
-        println("GitHub Release Generation: ✓ Enabled")
-        println("JAR Artifacts: ✓ Building")
-        println("")
-        println("📋 Migration Information:")
-        println("• OSSRH Sunset Date: June 30, 2025")
-        println("• New Portal: https://central.sonatype.com/")
-        println("• Release Artifacts: Available via GitHub Releases")
-        println("")
-        println("🚀 To publish to Maven Central Portal:")
-        println("1. Download artifacts from GitHub release")
-        println("2. Visit https://central.sonatype.com/")
-        println("3. Upload artifacts using Central Portal web interface")
-        println("4. For automation, implement Central Portal API integration")
-    }
+    dependsOn("checkCentralPortalCredentials")
 }
 
 tasks.register("publishLocalOnly") {
