@@ -40,23 +40,19 @@ Always reference these instructions first and fallback to search or bash command
 
 ### Prerequisites and Setup
 - Set up Java 21 (REQUIRED - project uses Java 21 toolchain):
-  - `export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64`
-  - `export PATH=$JAVA_HOME/bin:$PATH`
   - Verify with `java -version` - should show Java 21
 - Set execute permission: `chmod +x ./gradlew`
+- Project version is managed in `gradle.properties` file
 
 ### Build and Test
 - Build the project:
-  - `./gradlew build` -- Initial build takes approximately 28 seconds (includes Gradle setup). NEVER CANCEL. Set timeout to 60+ seconds.
   - Subsequent builds take ~2 seconds
 - Run tests:
-  - `./gradlew test` -- Takes under 1 second. All 14 tests should pass.
   - Test reports available in `lib/build/reports/tests/test/index.html`
 - Clean build:
   - `./gradlew clean build` -- Takes ~2 seconds for fresh build
 - Create JAR:
-  - `./gradlew jar` -- Creates `lib/build/libs/lib-1.0.0.jar`
-  - DO NOT use `./gradlew shadowJar` -- this task has known issues and will fail
+  - `./gradlew jar` -- Creates versioned JAR from gradle.properties
 
 ### Testing and Validation
 - ALWAYS run the full test suite after making code changes: `./gradlew test`
@@ -157,6 +153,7 @@ Always reference these instructions first and fallback to search or bash command
 - Clean builds: ~2 seconds
 - JAR creation: <1 second
 - Fat JAR creation: ~1 second (custom fatJar task)
+- Version: Set in gradle.properties, currently supports dynamic versioning
 
 ## Known Issues and Limitations
 
@@ -186,7 +183,7 @@ chmod +x ./gradlew
 # Development workflow
 ./gradlew clean build    # Clean and build (2 seconds)
 ./gradlew test          # Run tests (<1 second)
-./gradlew jar           # Create JAR artifact
+./gradlew jar           # Create JAR artifact (version from gradle.properties)
 ./gradlew fatJar        # Create fat JAR with dependencies
 
 # Validation
@@ -196,6 +193,9 @@ chmod +x ./gradlew
 # Information
 ./gradlew tasks         # List available tasks
 ./gradlew :lib:dependencies --configuration runtimeClasspath  # View dependencies
+
+# Version management
+# Set version in gradle.properties: version=1.0.4
 ```
 
 ## Common Development Scenarios

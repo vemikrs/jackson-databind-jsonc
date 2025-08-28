@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "jp.vemi"
-version = "1.0.0"
+version = project.property("version") as String
 
 repositories {
     mavenCentral()
