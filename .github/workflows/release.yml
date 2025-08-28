@@ -44,6 +44,12 @@ jobs:
         run: |
           echo "Built artifacts:"
           find lib/build/libs -name "*.jar" -ls
+          echo ""
+          echo "Release artifacts:"
+          echo "- Slim JAR (recommended): $(find lib/build/libs -name "jackson-databind-jsonc-*.jar" | grep -v sources | grep -v javadoc | grep -v all | grep -v shadow)"
+          echo "- Fat JAR (all-in-one):   $(find lib/build/libs -name "jackson-databind-jsonc-*-all.jar")"
+          echo "- Sources JAR:            $(find lib/build/libs -name "*sources.jar")"
+          echo "- Javadoc JAR:            $(find lib/build/libs -name "*javadoc.jar")"
           
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -56,30 +62,49 @@ jobs:
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           echo "Verifying Sonatype configuration..."
-          echo "OSSRH_USERNAME is set: ${{ secrets.OSSRH_USERNAME != '' }}"
-          echo "OSSRH_PASSWORD is set: ${{ secrets.OSSRH_PASSWORD != '' }}"
-          ./gradlew tasks --group=publishing
-
-      - name: Test Nexus connectivity (optional)
-        env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-        run: |
-          echo "Testing Nexus connectivity..."
-          # Try to retrieve staging profile (this will fail in some environments but helps debug)
-          ./gradlew retrieveSonatypeStagingProfile --continue || echo "Staging profile retrieval failed (expected in some environments)"
-
-      - name: Publish to Maven Central
+          ./gradlew validateCredentials
+          
+      - name: Publish to Maven Central (if credentials available)
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          echo "Publishing to Maven Central..."
+          if [ -z "$OSSRH_USERNAME" ] || [ -z "$OSSRH_PASSWORD" ]; then
+            echo "⚠️ OSSRH credentials not set. Skipping Maven Central publishing."
+            echo "Publishing to local repository only..."
+            ./gradlew publishLocalOnly
+            echo "✓ Local publishing completed. To publish to Maven Central:"
+            echo "  1. Set OSSRH_USERNAME and OSSRH_PASSWORD secrets"
+            echo "  2. Set GPG_PRIVATE_KEY and GPG_PASSPHRASE secrets"
+            echo "  3. Optionally set SONATYPE_STAGING_PROFILE_ID secret"
+            exit 0
+          fi
+          
+          echo "📦 Publishing to Maven Central..."
           echo "Step 1: Build and publish to Sonatype staging..."
-          ./gradlew publishToSonatype --info --stacktrace --no-daemon
+          if ! ./gradlew publishToSonatype --info --stacktrace --no-daemon; then
+            echo "❌ Failed to publish to Sonatype staging"
+            echo "This might be due to:"
+            echo "  - Invalid OSSRH credentials" 
+            echo "  - Missing staging profile ID"
+            echo "  - Network issues"
+            echo ""
+            echo "💡 Try setting SONATYPE_STAGING_PROFILE_ID secret to avoid profile discovery"
+            exit 1
+          fi
+          
           echo "Step 2: Close and release staging repository..."
-          ./gradlew closeAndReleaseSonatypeStagingRepository --info --stacktrace --no-daemon
+          if ! ./gradlew closeAndReleaseSonatypeStagingRepository --info --stacktrace --no-daemon; then
+            echo "❌ Failed to close and release staging repository"
+            echo "The artifacts may have been published to staging but not released"
+            echo "Check https://s01.oss.sonatype.org/ for manual release"
+            exit 1
+          fi
+          
+          echo "✅ Successfully published to Maven Central!"
