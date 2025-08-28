@@ -166,6 +166,8 @@ MyConfig config = mapper.readValue(json5, MyConfig.class);
 
 ## インストール
 
+> **⚠️ Maven Central 公開についてのお知らせ**: Sonatype OSSRH は 2025年6月30日に廃止予定です。現在、この プロジェクトは新しい Maven Central Portal への移行を完了しており、リリース時は [GitHub Releases](https://github.com/vemic/jackson-databind-jsonc/releases) からダウンロード可能です。Maven Central への自動公開は今後 Central Portal API により復旧予定です。
+
 ### Maven（Slim JAR）
 ```xml
 <dependency>
@@ -183,6 +185,11 @@ implementation 'jp.vemi:jackson-databind-jsonc:1.0.0'
 ### 手動インストール
 1. [Releases ページ](https://github.com/vemic/jackson-databind-jsonc/releases) から JAR をダウンロード
 2. プロジェクトのクラスパスに追加
+
+**📋 Maven Central Portal 移行について:**
+- 最新リリース: GitHub Releases から取得可能
+- Maven Central: Central Portal 経由で手動公開予定  
+- 詳細情報: [PUBLISHING.md](./PUBLISHING.md) を参照
 
 ## どちらの JAR を使うべきか
 

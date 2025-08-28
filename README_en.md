@@ -175,6 +175,8 @@ To meet different environment requirements, two distribution formats are provide
 
 ## Installation
 
+> **⚠️ Maven Central Publishing Notice**: Sonatype OSSRH is being discontinued on June 30, 2025. This project has completed migration to the new Maven Central Portal, and releases are currently available via [GitHub Releases](https://github.com/vemic/jackson-databind-jsonc/releases). Automated Maven Central publishing will be restored using the Central Portal API in the future.
+
 ### Maven (Slim JAR)
 ```xml
 <dependency>
@@ -192,6 +194,11 @@ implementation 'jp.vemi:jackson-databind-jsonc:1.0.0'
 ### Manual Installation
 1. Download the JAR from the [releases page](https://github.com/vemic/jackson-databind-jsonc/releases)
 2. Add it to your project's classpath
+
+**📋 Maven Central Portal Migration:**
+- Latest releases: Available from GitHub Releases
+- Maven Central: Manual publishing via Central Portal
+- Details: See [PUBLISHING.md](./PUBLISHING.md)
 
 ## When to Use Which JAR
 
