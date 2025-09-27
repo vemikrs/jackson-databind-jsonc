@@ -9,9 +9,6 @@ on:
 
 permissions:
   contents: read
-    branches: [ "main", "master", "develop" ]
-  pull_request:
-    branches: [ "main", "master", "develop" ]
   checks: write
   pull-requests: write
 
