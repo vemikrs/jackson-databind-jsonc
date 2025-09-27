@@ -1,0 +1,107 @@
+name: Test Release Workflow
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_scenario:
+        description: 'Test scenario to run'
+        required: true
+        type: choice
+        options:
+          - 'no-credentials'
+          - 'mock-credentials'
+          - 'full-simulation'
+        default: 'no-credentials'
+
+jobs:
+  test-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Test Scenario - No Credentials
+        if: ${{ inputs.test_scenario == 'no-credentials' }}
+        run: |
+          echo "🧪 Testing release workflow without credentials"
+          echo "Step 1: Build"
+          ./gradlew clean build fatJar
+          
+          echo "Step 2: Validate credentials"
+          ./gradlew validateCredentials
+          
+          echo "Step 3: Test local publishing"
+          ./gradlew publishLocalOnly
+          
+          echo "Step 4: Check artifacts"
+          find lib/build/libs -name "*.jar" -ls
+
+      - name: Test Scenario - Mock Credentials  
+        if: ${{ inputs.test_scenario == 'mock-credentials' }}
+        env:
+          OSSRH_USERNAME: test_user
+          OSSRH_PASSWORD: test_password
+          GPG_PRIVATE_KEY: fake_key
+          GPG_PASSPHRASE: fake_passphrase
+        run: |
+          echo "🧪 Testing release workflow with mock credentials"
+          echo "Step 1: Validate credentials"
+          ./gradlew validateCredentials
+          
+          echo "Step 2: Check Sonatype tasks"
+          ./gradlew tasks --group=publishing
+          
+          echo "Step 3: Verify publishToSonatype exists"
+          ./gradlew help --task publishToSonatype
+
+      - name: Test Scenario - Full Simulation
+        if: ${{ inputs.test_scenario == 'full-simulation' }}
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          echo "🚀 Testing full release workflow simulation"
+          
+          # Replicate release.yml workflow steps
+          ./gradlew clean build fatJar
+          
+          echo "Built artifacts:"
+          find lib/build/libs -name "*.jar" -ls
+          echo ""
+          echo "Release artifacts:"
+          echo "- Slim JAR: $(find lib/build/libs -name "jackson-databind-jsonc-*.jar" | grep -v sources | grep -v javadoc | grep -v all | grep -v shadow)"
+          echo "- Fat JAR: $(find lib/build/libs -name "jackson-databind-jsonc-*-all.jar")"
+          echo "- Sources JAR: $(find lib/build/libs -name "*sources.jar")"
+          echo "- Javadoc JAR: $(find lib/build/libs -name "*javadoc.jar")"
+          
+          # Test credential validation
+          ./gradlew validateCredentials
+          
+          # Simulate publishing decision logic
+          if [ -z "$OSSRH_USERNAME" ] || [ -z "$OSSRH_PASSWORD" ]; then
+            echo "⚠️ OSSRH credentials not set. Would skip Maven Central publishing."
+            ./gradlew publishLocalOnly
+          else
+            echo "📦 OSSRH credentials found. Would attempt Maven Central publishing."
+            echo "Note: Not actually publishing to avoid spam"
+          fi
+
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-release-artifacts-${{ inputs.test_scenario }}
+          path: lib/build/libs/*.jar

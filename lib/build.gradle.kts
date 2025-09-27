@@ -7,39 +7,215 @@
 
 plugins {
     `java-library`
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    `maven-publish`
+    signing
 }
 
 group = "jp.vemi"
-version = "1.0.0"
+version = project.property("version") as String
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.4")
+    // Jackson依存
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.20.0")
 
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-
+    // Additional dependencies for enhanced functionality
     api(libs.commons.math3)
     implementation(libs.guava)
+
+    // テスト依存
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+    // Set target compatibility to Java 8 for maximum compatibility
+    // This allows the library to run on Java 8+ while being built with Java 17+
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    
+    // Generate sources and javadoc JARs required for Maven Central
+    withSourcesJar()
+    withJavadocJar()
 }
 
 tasks {
-    shadowJar {
-        relocate("com.fasterxml.jackson", "shadow.com.fasterxml.jackson")
-        archiveFileName.set("${project.name}-${project.version}.jar")  // JARファイル名を設定
-        destinationDirectory.set(file("build/libs"))  // 出力ディレクトリを設定
+    // Slim JAR（デフォルト・推奨）- 依存関係を含まない軽量版
+    jar {
+        archiveClassifier.set("")
+        archiveFileName.set("jackson-databind-jsonc-${project.version}.jar")
+        manifest {
+            attributes(mapOf(
+                "Implementation-Title" to "jackson-databind-jsonc",
+                "Implementation-Version" to project.version,
+                "Automatic-Module-Name" to "jp.vemi.jsoncmapper",
+                "Multi-Release" to "true"
+            ))
+        }
     }
+    
+    // Fat JAR（推奨）- Jackson関連のみ含む最小限の自己完結型
+    val fatJar = register<Jar>("fatJar") {
+        archiveClassifier.set("all")
+        archiveFileName.set("jackson-databind-jsonc-${project.version}-all.jar")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        
+        from(sourceSets.main.get().output)
+        
+        // Jackson関連のみ含める（Guava, Commons-Mathは除外）
+        from({
+            configurations.runtimeClasspath.get()
+                .filter { it.name.contains("jackson") && it.name.endsWith("jar") }
+                .map { zipTree(it) }
+        }) {
+            exclude("META-INF/*.SF")
+            exclude("META-INF/*.DSA")
+            exclude("META-INF/*.RSA")
+            exclude("META-INF/DEPENDENCIES")
+            exclude("META-INF/LICENSE*")
+            exclude("META-INF/NOTICE*")
+        }
+        
+        manifest {
+            attributes(mapOf(
+                "Implementation-Title" to "jackson-databind-jsonc (All-in-One)",
+                "Implementation-Version" to project.version,
+                "Multi-Release" to "true"
+            ))
+        }
+    }
+    
+    // All-in-One JAR（エンタープライズ環境向け）- shadowJar互換性のため残す
+    val shadowJar = register<Jar>("shadowJar") {
+        archiveClassifier.set("shadow")
+        archiveFileName.set("jackson-databind-jsonc-${project.version}-shadow.jar")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        
+        from(sourceSets.main.get().output)
+        
+        // Jackson関連のみ含める（Guava, Commons-Mathは除外）
+        from({
+            configurations.runtimeClasspath.get()
+                .filter { it.name.contains("jackson") && it.name.endsWith("jar") }
+                .map { zipTree(it) }
+        }) {
+            exclude("META-INF/*.SF")
+            exclude("META-INF/*.DSA")
+            exclude("META-INF/*.RSA")
+            exclude("META-INF/DEPENDENCIES")
+            exclude("META-INF/LICENSE*")
+            exclude("META-INF/NOTICE*")
+        }
+        
+        manifest {
+            attributes(mapOf(
+                "Implementation-Title" to "jackson-databind-jsonc (All-in-One)",
+                "Implementation-Version" to project.version,
+                "Multi-Release" to "true"
+            ))
+        }
+    }
+    
+    // 両方をビルド
+    build {
+        dependsOn(fatJar)
+        dependsOn(shadowJar)
+    }
+    
     named<Test>("test") {
         useJUnitPlatform()
+    }
+}
+
+// Publishing configuration for Maven Central Portal
+// Note: OSSRH publishing removed due to sunset (June 30, 2025)
+// Artifacts are now published via GitHub Releases for manual Central Portal upload
+
+// GPG Signing Configuration
+// Note: For Maven Central Portal, artifacts can be signed locally or uploaded unsigned
+signing {
+    val signingKey = System.getenv("GPG_PRIVATE_KEY")
+    val signingPassword = System.getenv("GPG_PASSPHRASE")
+    val hasSigningCredentials = !signingKey.isNullOrEmpty() && !signingPassword.isNullOrEmpty()
+    
+    if (hasSigningCredentials) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign(publishing.publications)
+    } else {
+        println("GPG signing credentials not found - artifacts will be unsigned")
+        println("For Maven Central Portal: signing can be done during upload or locally")
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+            artifactId = "jackson-databind-jsonc"
+            
+            pom {
+                name.set("Jackson-Databind-Jsonc")
+                description.set("A Java library that extends Jackson's JsonMapper to handle JSONC (JSON with Comments) format")
+                url.set("https://github.com/vemic/jackson-databind-jsonc")
+                
+                licenses {
+                    license {
+                        name.set("Apache License 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id.set("vemic")
+                        name.set("vemic")
+                        url.set("https://github.com/vemic")
+                    }
+                }
+                
+                scm {
+                    connection.set("scm:git:git://github.com/vemic/jackson-databind-jsonc.git")
+                    developerConnection.set("scm:git:ssh://github.com:vemic/jackson-databind-jsonc.git")
+                    url.set("https://github.com/vemic/jackson-databind-jsonc")
+                }
+            }
+        }
+        
+        create<MavenPublication>("fatJar") {
+            artifact(tasks.named("fatJar").get())
+            artifactId = "jackson-databind-jsonc-all"
+            
+            pom {
+                name.set("Jackson Databind JSONC (All-in-One)")
+                description.set("JSONC (JSON with Comments) support for Jackson - All-in-One JAR with dependencies")
+                url.set("https://github.com/vemic/jackson-databind-jsonc")
+                
+                licenses {
+                    license {
+                        name.set("Apache License 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id.set("vemic")
+                        name.set("vemic")
+                    }
+                }
+                
+                scm {
+                    connection.set("scm:git:git://github.com/vemic/jackson-databind-jsonc.git")
+                    developerConnection.set("scm:git:ssh://github.com:vemic/jackson-databind-jsonc.git")
+                    url.set("https://github.com/vemic/jackson-databind-jsonc")
+                }
+            }
+        }
     }
 }

@@ -4,3 +4,35 @@
 # Ignore Gradle build output directory
 build
 integration_test.java
+
+# Ignore IntelliJ IDEA project files
+.idea/
+*.iml
+*.iws
+
+# Ignore Eclipse project files  
+.project
+.classpath
+.settings/
+
+# Ignore VS Code files
+.vscode/
+!.vscode/settings.json
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+
+# Ignore credential and sensitive files
+gradle.properties
+*.key
+*.p12
+*.jks
+*.pem
+credential*
+secret*
+
+# Ignore temporary files
+*.tmp
+*.temp
+.tmp/

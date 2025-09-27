@@ -1,9 +1,22 @@
+---
 name: Release
 
-on:
+"on":
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: false
+        type: string
+      skip_maven_central:
+        description: 'Skip Maven Central publishing (GitHub release only)'
+        required: false
+        default: false
+        type: boolean
+
 permissions:
   contents: write
   issues: write
@@ -13,41 +26,159 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    name: Build Release Artifacts
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
 
       - name: Set execute permission for gradlew
         run: chmod +x ./gradlew
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v5
         with:
-          distribution: 'adopt'
+          distribution: 'temurin'
           java-version: '21'
 
-      - name: Build with Gradle
-        run: ./gradlew build
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Building version: ${VERSION}"
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Build and sign artifacts
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          ./gradlew clean build fatJar publishToMavenLocal
+          
+      - name: List built artifacts
+        run: |
+          echo "Built artifacts:"
+          find lib/build/libs -name "*.jar" -ls
+          echo ""
+          echo "Maven repository artifacts:"
+          find ~/.m2/repository/jp/vemi -name "*.jar" -ls 2>/dev/null || echo "No local Maven artifacts found"
+          
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: Release notes for ${{ github.ref }}
-          draft: true
-          prerelease: true
+          name: release-artifacts
+          path: |
+            lib/build/libs/*.jar
+            ~/.m2/repository/jp/vemi/**/*
+          retention-days: 5
 
-      - name: Upload JAR file
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  github-release:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Create GitHub Release
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./lib/build/libs/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.jar
-          asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.jar
-          asset_content_type: application/java-archive
+          name: release-artifacts
+          path: ./artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.version }}
+          files: |
+            artifacts/lib/build/libs/*.jar
+          generate_release_notes: true
+          body: |
+            ## 📦 Artifacts
+            
+            - **Slim JAR** (recommended): `jackson-databind-jsonc-${{ needs.build.outputs.version }}.jar`
+            - **Fat JAR** (all-in-one): `jackson-databind-jsonc-${{ needs.build.outputs.version }}-all.jar`
+            - **Sources JAR**: `jackson-databind-jsonc-${{ needs.build.outputs.version }}-sources.jar`
+            - **Javadoc JAR**: `jackson-databind-jsonc-${{ needs.build.outputs.version }}-javadoc.jar`
+            
+            ## 🚀 Maven Central
+            
+            This release is automatically published to Maven Central Portal.
+            
+            **Gradle:**
+            ```kotlin
+            implementation("jp.vemi:jackson-databind-jsonc:${{ needs.build.outputs.version }}")
+            ```
+            
+            **Maven:**
+            ```xml
+            <dependency>
+                <groupId>jp.vemi</groupId>
+                <artifactId>jackson-databind-jsonc</artifactId>
+                <version>${{ needs.build.outputs.version }}</version>
+            </dependency>
+            ```
+
+  maven-central-publish:
+    needs: [build, github-release]
+    runs-on: ubuntu-latest
+    name: Publish to Maven Central Portal
+    if: ${{ !github.event.inputs.skip_maven_central }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: ./artifacts
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Publish to Maven Central Portal
+        env:
+          CENTRAL_PORTAL_USERNAME: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
+          CENTRAL_PORTAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          if [ -z "$CENTRAL_PORTAL_USERNAME" ] || [ -z "$CENTRAL_PORTAL_PASSWORD" ]; then
+            echo "🚨 Missing Central Portal credentials"
+            echo "Please set CENTRAL_PORTAL_USERNAME and CENTRAL_PORTAL_PASSWORD secrets"
+            echo "📚 Setup guide: https://central.sonatype.org/publish/generate-portal-token/"
+            echo ""
+            echo "📋 Manual upload instructions:"
+            echo "1. Visit: https://central.sonatype.com/"
+            echo "2. Sign in with your Sonatype account"
+            echo "3. Upload artifacts from the GitHub release"
+            echo "4. Follow the Central Portal publishing workflow"
+            exit 1
+          fi
+          
+          echo "📦 Publishing to Maven Central Portal..."
+          
+          # Publish to Central Portal using nexus-publish-plugin
+          ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository
+          
+          echo "✅ Published to Central Portal staging repository"
+          echo "🔄 Closing and releasing staging repository..."
+
+      - name: Publishing Success
+        if: success()
+        run: |
+          echo "✅ Successfully published to Maven Central Portal!"
+          echo "🔍 Check deployment status: https://central.sonatype.com/"
+          echo "⏱️  It may take a few minutes to appear on Maven Central"
