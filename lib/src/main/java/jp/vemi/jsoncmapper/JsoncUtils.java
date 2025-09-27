@@ -222,7 +222,7 @@ public class JsoncUtils {
      * 
      * Supported comment formats:
      * - Block comments: /* comment &#42;/
-     * - End-of-line comments: &#47;&#47; comment
+     * - End-of-line comments: {@code //} comment
      * 
      * @param jsonc JSON with comments string
      * @return JSON string with comments removed
