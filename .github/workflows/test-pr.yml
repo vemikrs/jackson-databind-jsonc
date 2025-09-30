@@ -41,8 +41,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          # If PR number is provided via workflow_dispatch, checkout that PR
-          ref: ${{ github.event.inputs.pr_number && format('refs/pull/{0}/head', github.event.inputs.pr_number) || github.ref }}
+          # For pull_request events, use default checkout (merge commit)
+          # For workflow_dispatch with pr_number, checkout that specific PR
+          ref: ${{ github.event.inputs.pr_number && format('refs/pull/{0}/head', github.event.inputs.pr_number) || '' }}
 
       - name: Set execute permission for gradlew
         run: chmod +x ./gradlew
