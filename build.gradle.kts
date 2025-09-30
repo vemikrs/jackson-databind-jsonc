@@ -1,5 +1,5 @@
 plugins {
-    id("com.vanniktech.maven.publish") version "0.30.0" apply false
+    id("com.vanniktech.maven.publish") version "0.34.0" apply false
 }
 
 group = "jp.vemi"
