@@ -135,12 +135,12 @@ tasks {
     }
 }
 
-// Publishing configuration for Maven Central Portal
-// Note: OSSRH publishing removed due to sunset (June 30, 2025)
-// Artifacts are now published via GitHub Releases for manual Central Portal upload
+// Publishing configuration
+// Artifacts are built here; publishing to Maven Central is handled by the root-level
+// Gradle Nexus Publish configuration (OSSRH: s01.oss.sonatype.org) and GitHub Actions.
 
 // GPG Signing Configuration
-// Note: For Maven Central Portal, artifacts can be signed locally or uploaded unsigned
+// Maven Central requires signed artifacts; CI uses in-memory keys via env vars.
 signing {
     // Support multiple environment variable naming conventions
     // Priority: GPG_* > SIGNING_*
@@ -181,16 +181,16 @@ signing {
                 println("✓ GPG signing configured successfully")
             } catch (e: Exception) {
                 println("⚠ Failed to configure GPG signing: ${e.message}")
-                println("  Artifacts will be unsigned - signing can be done during Maven Central upload")
+                println("  Artifacts will be unsigned - CI or local setup may need key fixes")
             }
         } else {
             println("⚠ GPG key does not appear to be in ASCII-armored format")
             println("  Expected format: -----BEGIN PGP PRIVATE KEY BLOCK-----")
-            println("  Artifacts will be unsigned - signing can be done during Maven Central upload")
+            println("  Artifacts will be unsigned - CI or local setup may need key fixes")
         }
     } else {
         println("GPG signing credentials not found - artifacts will be unsigned")
-        println("For Maven Central Portal: signing can be done during upload or locally")
+        println("Set GPG_PRIVATE_KEY/GPG_PASSPHRASE or SIGNING_SECRET_KEY/SIGNING_PASSWORD for signing")
     }
 }
 

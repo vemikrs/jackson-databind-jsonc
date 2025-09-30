@@ -1,10 +1,10 @@
 @echo off
-echo "=== Testing Release Workflow (Post-OSSRH Migration) ==="
+echo "=== Testing Release Workflow (OSSRH Publishing) ==="
 echo.
 
-echo "⚠️  OSSRH Migration Notice:"
-echo "Sonatype OSSRH is discontinued as of June 30, 2025"
-echo "This project now uses Maven Central Portal for publishing"
+echo "⚠️  Publishing Information:"
+echo "This project uses OSSRH (s01.oss.sonatype.org) for automated publishing"
+echo "Fallback to Central Portal supported for manual upload"
 echo.
 
 echo "Step 1: Validate build configuration"
@@ -32,4 +32,4 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo "✅ Release workflow test - PASSED"
-echo "Migration complete - GitHub releases will provide artifacts for Central Portal upload"
+echo "Automated publishing to OSSRH staging, then Maven Central"

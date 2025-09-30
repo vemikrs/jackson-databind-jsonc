@@ -109,7 +109,8 @@ jobs:
             
             ## 🚀 Maven Central
             
-            This release is automatically published to Maven Central Portal.
+            This release is automatically published to Maven Central (via OSSRH).
+            Status (OSSRH): https://s01.oss.sonatype.org/
             
             **Gradle:**
             ```kotlin
@@ -128,43 +129,43 @@ jobs:
   maven-central-publish:
     needs: [build, github-release]
     runs-on: ubuntu-latest
-    name: Publish to Maven Central Portal
+    name: Publish to Maven Central via OSSRH
     if: ${{ !github.event.inputs.skip_maven_central }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: release-artifacts
-          path: ./artifacts
-
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
+          cache: 'gradle'
 
       - name: Set execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Publish to Maven Central Portal
+      - name: Publish to Maven Central via OSSRH
         env:
-          CENTRAL_PORTAL_USERNAME: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
-          CENTRAL_PORTAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           SIGNING_SECRET_KEY: ${{ secrets.SIGNING_SECRET_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          if [ -z "$CENTRAL_PORTAL_USERNAME" ] || [ -z "$CENTRAL_PORTAL_PASSWORD" ]; then
-            echo "🚨 Missing Central Portal credentials"
-            echo "Please set CENTRAL_PORTAL_USERNAME and CENTRAL_PORTAL_PASSWORD secrets"
-            echo "📚 Setup guide: https://central.sonatype.org/publish/generate-portal-token/"
+          # Check for publishing credentials (OSSRH required)
+          if [ -z "$OSSRH_USERNAME" ] || [ -z "$OSSRH_PASSWORD" ]; then
+            echo "🚨 Missing OSSRH publishing credentials"
+            echo "Please set the following GitHub Secrets:"
+            echo "  • OSSRH_USERNAME"
+            echo "  • OSSRH_PASSWORD"
             echo ""
-            echo "📋 Manual upload instructions:"
+            echo "📚 Setup guide: https://central.sonatype.org/publish/publish-guide/#deployment"
+            echo "📚 OSSRH account: https://issues.sonatype.org/"
+            echo ""
+            echo "📋 Manual upload instructions (fallback):"
             echo "1. Visit: https://central.sonatype.com/"
             echo "2. Sign in with your Sonatype account"
             echo "3. Upload artifacts from the GitHub release"
@@ -172,17 +173,23 @@ jobs:
             exit 1
           fi
           
-          echo "📦 Publishing to Maven Central Portal..."
+          echo "📦 Publishing to Maven Central via OSSRH (s01.oss.sonatype.org)..."
+          echo "Using OSSRH credentials"
           
-          # Publish to Central Portal using nexus-publish-plugin
-          ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository
+          # Validate configuration
+          ./gradlew validateCredentials
+          echo ""
           
-          echo "✅ Published to Central Portal staging repository"
+          # Publish to OSSRH using nexus-publish-plugin
+          ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --info -S
+          
+          echo ""
+          echo "✅ Published to OSSRH staging repository"
           echo "🔄 Closing and releasing staging repository..."
 
       - name: Publishing Success
         if: success()
         run: |
-          echo "✅ Successfully published to Maven Central Portal!"
-          echo "🔍 Check deployment status: https://central.sonatype.com/"
+          echo "✅ Successfully published to Maven Central via OSSRH!"
+          echo "🔍 Check deployment status: https://s01.oss.sonatype.org/"
           echo "⏱️  It may take a few minutes to appear on Maven Central"

@@ -4,25 +4,30 @@ plugins {
     id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
 }
 
-// Maven Central Portal Configuration
-// ================================
-// This project uses Maven Central Portal for publishing.
+// OSSRH Configuration (s01.oss.sonatype.org)
+// ==========================================
+// This project uses OSSRH (Sonatype OSSRH s01) for publishing to Maven Central.
 // 
-// Required environment variables for automated publishing:
-// - CENTRAL_PORTAL_USERNAME: Central Portal username 
-// - CENTRAL_PORTAL_PASSWORD: Central Portal password/token
+// Required environment variables for automated publishing (priority order):
+// 1. Preferred: OSSRH_USERNAME / OSSRH_PASSWORD
+// 2. Fallback: CENTRAL_PORTAL_USERNAME / CENTRAL_PORTAL_PASSWORD
 // 
-// Setup guide: https://central.sonatype.org/publish/generate-portal-token/
+// Setup guide: https://central.sonatype.org/publish/publish-guide/#deployment
 
 nexusPublishing {
     repositories {
         sonatype {
-            // Central Portal configuration via nexus-publish-plugin
-            nexusUrl.set(uri("https://central.sonatype.com/api/v1/publisher/"))
-            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/api/v1/publisher/"))
+            // OSSRH s01 configuration via nexus-publish-plugin
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
             
-            username.set(System.getenv("CENTRAL_PORTAL_USERNAME") ?: "")
-            password.set(System.getenv("CENTRAL_PORTAL_PASSWORD") ?: "")
+            // Priority: OSSRH_* -> CENTRAL_PORTAL_* -> empty string
+            username.set(System.getenv("OSSRH_USERNAME") 
+                ?: System.getenv("CENTRAL_PORTAL_USERNAME") 
+                ?: "")
+            password.set(System.getenv("OSSRH_PASSWORD") 
+                ?: System.getenv("CENTRAL_PORTAL_PASSWORD") 
+                ?: "")
         }
     }
     
@@ -40,26 +45,46 @@ nexusPublishing {
 // Add publishing tasks for validation
 tasks.register("checkCentralPortalCredentials") {
     group = "verification"
-    description = "Validates Central Portal publishing configuration"
+    description = "Validates OSSRH/Central Portal publishing configuration"
     
     doLast {
-        val username = System.getenv("CENTRAL_PORTAL_USERNAME")
-        val password = System.getenv("CENTRAL_PORTAL_PASSWORD")
+        // Check OSSRH credentials (preferred)
+        val ossrhUsername = System.getenv("OSSRH_USERNAME")
+        val ossrhPassword = System.getenv("OSSRH_PASSWORD")
         
-        println("=== Central Portal Configuration ===")
-        println("Username configured: ${if (!username.isNullOrEmpty()) "✓" else "✗"}")
-        println("Password configured: ${if (!password.isNullOrEmpty()) "✓" else "✗"}")
+        // Check Central Portal credentials (fallback)
+        val portalUsername = System.getenv("CENTRAL_PORTAL_USERNAME")
+        val portalPassword = System.getenv("CENTRAL_PORTAL_PASSWORD")
+        
+        println("=== Publishing Configuration ===")
+        println("OSSRH credentials (preferred):")
+        println("  Username: ${if (!ossrhUsername.isNullOrEmpty()) "✓" else "✗"}")
+        println("  Password: ${if (!ossrhPassword.isNullOrEmpty()) "✓" else "✗"}")
+        println("")
+        println("Central Portal credentials (fallback):")
+        println("  Username: ${if (!portalUsername.isNullOrEmpty()) "✓" else "✗"}")
+        println("  Password: ${if (!portalPassword.isNullOrEmpty()) "✓" else "✗"}")
         println("")
         
-        if (username.isNullOrEmpty() || password.isNullOrEmpty()) {
-            println("⚠️  Missing Central Portal credentials")
-            println("Required environment variables:")
-            println("• CENTRAL_PORTAL_USERNAME")
-            println("• CENTRAL_PORTAL_PASSWORD")
+        val hasOssrhCreds = !ossrhUsername.isNullOrEmpty() && !ossrhPassword.isNullOrEmpty()
+        val hasPortalCreds = !portalUsername.isNullOrEmpty() && !portalPassword.isNullOrEmpty()
+        
+        if (!hasOssrhCreds && !hasPortalCreds) {
+            println("⚠️  Missing publishing credentials")
+            println("Required environment variables (in priority order):")
+            println("• OSSRH_USERNAME / OSSRH_PASSWORD (preferred)")
+            println("• CENTRAL_PORTAL_USERNAME / CENTRAL_PORTAL_PASSWORD (fallback)")
             println("")
-            println("📚 Setup guide: https://central.sonatype.org/publish/generate-portal-token/")
+            println("📚 Setup guide: https://central.sonatype.org/publish/publish-guide/#deployment")
+            println("📚 OSSRH account: https://issues.sonatype.org/")
+        } else if (hasOssrhCreds) {
+            println("✅ OSSRH credentials configured (using preferred)")
+            println("Target: https://s01.oss.sonatype.org/")
+            println("Ready for automated publishing!")
         } else {
-            println("✅ Central Portal credentials configured")
+            println("✅ Central Portal credentials configured (using fallback)")
+            println("Target: https://s01.oss.sonatype.org/")
+            println("💡 Consider migrating to OSSRH_* environment variables")
             println("Ready for automated publishing!")
         }
     }
