@@ -93,10 +93,8 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
-    // Set target compatibility to Java 8 for maximum compatibility
-    // This allows the library to run on Java 8+ while being built with Java 17+
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    // Target Java 8 bytecode while building with Java 21 toolchain
+    // Prefer --release 8 via compiler args to avoid obsolete source/target warnings
     
     // Note: Vanniktech plugin automatically generates sources and javadoc JARs for Maven Central
     // No need for withSourcesJar() and withJavadocJar() here
@@ -188,6 +186,26 @@ tasks {
     named<Test>("test") {
         useJUnitPlatform()
     }
+
+    // Configure Javadoc: UTF-8 and enable doclint (except missing for internal/private)
+    withType<Javadoc> {
+    (options as StandardJavadocDocletOptions).apply {
+            encoding = "UTF-8"
+            charSet = "UTF-8"
+            docEncoding = "UTF-8"
+            // Report most issues; allow missing for non-public elements to reduce noise
+            addStringOption("Xdoclint:all,-missing", "-quiet")
+            // Link to Java SE API docs (avoid redirects)
+            links("https://docs.oracle.com/en/java/javase/21/docs/api/")
+        }
+    }
+}
+
+// Use --release 8 to generate Java 8 compatible bytecode without deprecated source/target flags
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+    // Clear legacy source/target set by defaults and use release flag
+    options.release.set(8)
 }
 
 // Publishing configuration
