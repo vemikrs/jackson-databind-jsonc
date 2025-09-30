@@ -1,10 +1,10 @@
 @echo off
-echo "=== Testing Release Workflow (OSSRH Publishing) ==="
+echo "=== Testing Release Workflow (Central Portal Publishing) ==="
 echo.
 
 echo "⚠️  Publishing Information:"
-echo "This project uses OSSRH (s01.oss.sonatype.org) for automated publishing"
-echo "Fallback to Central Portal supported for manual upload"
+echo "This project uses Central Portal for automated publishing to Maven Central"
+echo "Manual upload supported at https://central.sonatype.com/publishing"
 echo.
 
 echo "Step 1: Validate build configuration"
@@ -32,4 +32,4 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo "✅ Release workflow test - PASSED"
-echo "Automated publishing to OSSRH staging, then Maven Central"
+echo "Automated publishing to Central Portal, then Maven Central"

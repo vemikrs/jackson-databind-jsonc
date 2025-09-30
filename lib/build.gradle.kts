@@ -11,10 +11,66 @@ plugins {
     `java-library`
     `maven-publish`
     signing
+    id("com.vanniktech.maven.publish")
 }
 
 group = "jp.vemi"
-version = project.property("version") as String
+// Resolve version with fallbacks:
+// 1) Environment variable PROJECT_VERSION (for CI or ad-hoc builds)
+// 2) Gradle property "version" (from gradle.properties or -Pversion=...)
+// 3) Safe default to avoid "unspecified" artifacts
+run {
+    val envVersion = System.getenv("PROJECT_VERSION")?.trim().orEmpty()
+    val propVersion = findProperty("version")?.toString()?.trim().orEmpty()
+    version = when {
+        envVersion.isNotEmpty() -> envVersion
+        propVersion.isNotEmpty() -> propVersion
+        else -> "0.0.0-SNAPSHOT"
+    }
+}
+
+// Configure Vanniktech Maven Publish Plugin for Central Portal
+mavenPublishing {
+    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    
+    // Only sign if credentials are available
+    val hasSigningKey = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey") != null
+        || System.getenv("GPG_PRIVATE_KEY") != null
+        || System.getenv("SIGNING_SECRET_KEY") != null
+    
+    if (hasSigningKey) {
+        signAllPublications()
+    }
+    
+    coordinates("jp.vemi", "jackson-databind-jsonc", version.toString())
+    
+    pom {
+        name.set("Jackson-Databind-Jsonc")
+        description.set("A Java library that extends Jackson's JsonMapper to handle JSONC (JSON with Comments) format")
+        url.set("https://github.com/vemikrs/jackson-databind-jsonc")
+        
+        licenses {
+            license {
+                name.set("Apache License 2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0")
+            }
+        }
+        
+        developers {
+            developer {
+                id.set("vemikrs")
+                name.set("vemikrs")
+                url.set("https://github.com/vemikrs")
+            }
+        }
+        
+        scm {
+            connection.set("scm:git:git://github.com/vemikrs/jackson-databind-jsonc.git")
+            developerConnection.set("scm:git:ssh://github.com:vemikrs/jackson-databind-jsonc.git")
+            url.set("https://github.com/vemikrs/jackson-databind-jsonc")
+        }
+    }
+}
 
 repositories {
     mavenCentral()
@@ -42,9 +98,8 @@ java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
     
-    // Generate sources and javadoc JARs required for Maven Central
-    withSourcesJar()
-    withJavadocJar()
+    // Note: Vanniktech plugin automatically generates sources and javadoc JARs for Maven Central
+    // No need for withSourcesJar() and withJavadocJar() here
 }
 
 tasks {
@@ -141,11 +196,17 @@ tasks {
 
 // GPG Signing Configuration
 // Maven Central requires signed artifacts; CI uses in-memory keys via env vars.
+// Vanniktech plugin handles signing via ORG_GRADLE_PROJECT_signingInMemoryKey/Password
+// This block provides fallback support for legacy GPG_* environment variables
 signing {
     // Support multiple environment variable naming conventions
-    // Priority: GPG_* > SIGNING_*
-    var signingKey = System.getenv("GPG_PRIVATE_KEY") ?: System.getenv("SIGNING_SECRET_KEY")
-    val signingPassword = System.getenv("GPG_PASSPHRASE") ?: System.getenv("SIGNING_PASSWORD")
+    // Priority: ORG_GRADLE_PROJECT_* > GPG_* > SIGNING_*
+    var signingKey = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey") 
+        ?: System.getenv("GPG_PRIVATE_KEY") 
+        ?: System.getenv("SIGNING_SECRET_KEY")
+    val signingPassword = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyPassword")
+        ?: System.getenv("GPG_PASSPHRASE") 
+        ?: System.getenv("SIGNING_PASSWORD")
     val hasSigningCredentials = !signingKey.isNullOrEmpty() && !signingPassword.isNullOrEmpty()
     
     if (hasSigningCredentials && signingKey != null) {
@@ -173,61 +234,30 @@ signing {
             }
         }
         
-        // 3. Validate ASCII-armored format
+        // 3. Validate ASCII-armored format and configure signing
         if (transformedKey.contains("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
             try {
                 useInMemoryPgpKeys(transformedKey, signingPassword)
-                sign(publishing.publications)
                 println("✓ GPG signing configured successfully")
             } catch (e: Exception) {
                 println("⚠ Failed to configure GPG signing: ${e.message}")
-                println("  Artifacts will be unsigned - CI or local setup may need key fixes")
+                println("  Vanniktech plugin will attempt signing with ORG_GRADLE_PROJECT_* variables")
             }
         } else {
             println("⚠ GPG key does not appear to be in ASCII-armored format")
             println("  Expected format: -----BEGIN PGP PRIVATE KEY BLOCK-----")
-            println("  Artifacts will be unsigned - CI or local setup may need key fixes")
+            println("  Vanniktech plugin will attempt signing with ORG_GRADLE_PROJECT_* variables")
         }
     } else {
         println("GPG signing credentials not found - artifacts will be unsigned")
-        println("Set GPG_PRIVATE_KEY/GPG_PASSPHRASE or SIGNING_SECRET_KEY/SIGNING_PASSWORD for signing")
+        println("Set ORG_GRADLE_PROJECT_signingInMemoryKey/Password or GPG_PRIVATE_KEY/GPG_PASSPHRASE for signing")
     }
 }
 
+// Additional publication for fatJar artifact
+// Vanniktech handles the main 'maven' publication, we add fatJar as extra
 publishing {
     publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-            artifactId = "jackson-databind-jsonc"
-            
-            pom {
-                name.set("Jackson-Databind-Jsonc")
-                description.set("A Java library that extends Jackson's JsonMapper to handle JSONC (JSON with Comments) format")
-                url.set("https://github.com/vemic/jackson-databind-jsonc")
-                
-                licenses {
-                    license {
-                        name.set("Apache License 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
-                    }
-                }
-                
-                developers {
-                    developer {
-                        id.set("vemic")
-                        name.set("vemic")
-                        url.set("https://github.com/vemic")
-                    }
-                }
-                
-                scm {
-                    connection.set("scm:git:git://github.com/vemic/jackson-databind-jsonc.git")
-                    developerConnection.set("scm:git:ssh://github.com:vemic/jackson-databind-jsonc.git")
-                    url.set("https://github.com/vemic/jackson-databind-jsonc")
-                }
-            }
-        }
-        
         create<MavenPublication>("fatJar") {
             artifact(tasks.named("fatJar").get())
             artifactId = "jackson-databind-jsonc-all"
@@ -235,7 +265,7 @@ publishing {
             pom {
                 name.set("Jackson Databind JSONC (All-in-One)")
                 description.set("JSONC (JSON with Comments) support for Jackson - All-in-One JAR with dependencies")
-                url.set("https://github.com/vemic/jackson-databind-jsonc")
+                url.set("https://github.com/vemikrs/jackson-databind-jsonc")
                 
                 licenses {
                     license {
@@ -246,15 +276,15 @@ publishing {
                 
                 developers {
                     developer {
-                        id.set("vemic")
-                        name.set("vemic")
+                        id.set("vemikrs")
+                        name.set("vemikrs")
                     }
                 }
                 
                 scm {
-                    connection.set("scm:git:git://github.com/vemic/jackson-databind-jsonc.git")
-                    developerConnection.set("scm:git:ssh://github.com:vemic/jackson-databind-jsonc.git")
-                    url.set("https://github.com/vemic/jackson-databind-jsonc")
+                    connection.set("scm:git:git://github.com/vemikrs/jackson-databind-jsonc.git")
+                    developerConnection.set("scm:git:ssh://github.com:vemikrs/jackson-databind-jsonc.git")
+                    url.set("https://github.com/vemikrs/jackson-databind-jsonc")
                 }
             }
         }

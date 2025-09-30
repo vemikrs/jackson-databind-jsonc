@@ -29,6 +29,7 @@ jobs:
     name: Build Release Artifacts
     outputs:
       version: ${{ steps.version.outputs.version }}
+      publish_version: ${{ steps.version.outputs.publish_version }}
 
     steps:
       - name: Checkout repository
@@ -47,12 +48,15 @@ jobs:
         id: version
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
-            VERSION="${{ github.event.inputs.version }}"
+            TAG_VERSION="${{ github.event.inputs.version }}"
           else
-            VERSION="${GITHUB_REF#refs/tags/}"
+            TAG_VERSION="${GITHUB_REF#refs/tags/}"
           fi
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Building version: ${VERSION}"
+          # Strip leading 'v' from tag for artifact/POM version
+          PUBLISH_VERSION="${TAG_VERSION#v}"
+          echo "version=${TAG_VERSION}" >> $GITHUB_OUTPUT
+          echo "publish_version=${PUBLISH_VERSION}" >> $GITHUB_OUTPUT
+          echo "Building version: ${TAG_VERSION} (publish version: ${PUBLISH_VERSION})"
 
       - name: Build and sign artifacts
         env:
@@ -61,7 +65,8 @@ jobs:
           SIGNING_SECRET_KEY: ${{ secrets.SIGNING_SECRET_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          ./gradlew clean build fatJar publishToMavenLocal
+          export PROJECT_VERSION="${{ steps.version.outputs.publish_version }}"
+          ./gradlew clean build fatJar publishToMavenLocal -Pversion="$PROJECT_VERSION"
           
       - name: List built artifacts
         run: |
@@ -102,34 +107,34 @@ jobs:
           body: |
             ## 📦 Artifacts
             
-            - **Slim JAR** (recommended): `jackson-databind-jsonc-${{ needs.build.outputs.version }}.jar`
-            - **Fat JAR** (all-in-one): `jackson-databind-jsonc-${{ needs.build.outputs.version }}-all.jar`
-            - **Sources JAR**: `jackson-databind-jsonc-${{ needs.build.outputs.version }}-sources.jar`
-            - **Javadoc JAR**: `jackson-databind-jsonc-${{ needs.build.outputs.version }}-javadoc.jar`
+            - **Slim JAR** (recommended): `jackson-databind-jsonc-${{ needs.build.outputs.publish_version }}.jar`
+            - **Fat JAR** (all-in-one): `jackson-databind-jsonc-${{ needs.build.outputs.publish_version }}-all.jar`
+            - **Sources JAR**: `jackson-databind-jsonc-${{ needs.build.outputs.publish_version }}-sources.jar`
+            - **Javadoc JAR**: `jackson-databind-jsonc-${{ needs.build.outputs.publish_version }}-javadoc.jar`
             
             ## 🚀 Maven Central
             
-            This release is automatically published to Maven Central (via OSSRH).
-            Status (OSSRH): https://s01.oss.sonatype.org/
+            This release is automatically published to Maven Central via Central Portal.
+            Status: https://central.sonatype.com/
             
             **Gradle:**
             ```kotlin
-            implementation("jp.vemi:jackson-databind-jsonc:${{ needs.build.outputs.version }}")
+            implementation("jp.vemi:jackson-databind-jsonc:${{ needs.build.outputs.publish_version }}")
             ```
             
             **Maven:**
             ```xml
             <dependency>
-                <groupId>jp.vemi</groupId>
-                <artifactId>jackson-databind-jsonc</artifactId>
-                <version>${{ needs.build.outputs.version }}</version>
+              <groupId>jp.vemi</groupId>
+              <artifactId>jackson-databind-jsonc</artifactId>
+              <version>${{ needs.build.outputs.publish_version }}</version>
             </dependency>
             ```
 
   maven-central-publish:
     needs: [build, github-release]
     runs-on: ubuntu-latest
-    name: Publish to Maven Central via OSSRH
+    name: Publish to Maven Central via Central Portal
     if: ${{ !github.event.inputs.skip_maven_central }}
 
     steps:
@@ -146,50 +151,48 @@ jobs:
       - name: Set execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Publish to Maven Central via OSSRH
+      - name: Publish to Maven Central via Central Portal
         env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          SIGNING_SECRET_KEY: ${{ secrets.SIGNING_SECRET_KEY }}
-          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
-          # Check for publishing credentials (OSSRH required)
-          if [ -z "$OSSRH_USERNAME" ] || [ -z "$OSSRH_PASSWORD" ]; then
-            echo "🚨 Missing OSSRH publishing credentials"
+          # Check for publishing credentials (Central Portal required)
+          if [ -z "$ORG_GRADLE_PROJECT_mavenCentralUsername" ] || [ -z "$ORG_GRADLE_PROJECT_mavenCentralPassword" ]; then
+            echo "🚨 Missing Central Portal publishing credentials"
             echo "Please set the following GitHub Secrets:"
-            echo "  • OSSRH_USERNAME"
-            echo "  • OSSRH_PASSWORD"
+            echo "  • MAVEN_CENTRAL_USERNAME (Central Portal token name/ID)"
+            echo "  • MAVEN_CENTRAL_PASSWORD (Central Portal token secret)"
             echo ""
-            echo "📚 Setup guide: https://central.sonatype.org/publish/publish-guide/#deployment"
-            echo "📚 OSSRH account: https://issues.sonatype.org/"
+            echo "📚 Setup guide: https://central.sonatype.com/"
             echo ""
             echo "📋 Manual upload instructions (fallback):"
             echo "1. Visit: https://central.sonatype.com/"
-            echo "2. Sign in with your Sonatype account"
+            echo "2. Sign in with your Central Portal account"
             echo "3. Upload artifacts from the GitHub release"
             echo "4. Follow the Central Portal publishing workflow"
             exit 1
           fi
           
-          echo "📦 Publishing to Maven Central via OSSRH (s01.oss.sonatype.org)..."
-          echo "Using OSSRH credentials"
+          echo "📦 Publishing to Maven Central via Central Portal..."
+          echo "Using Central Portal credentials"
           
           # Validate configuration
-          ./gradlew validateCredentials
+          export PROJECT_VERSION="${{ needs.build.outputs.publish_version }}"
+          ./gradlew validateCredentials -Pversion="$PROJECT_VERSION"
           echo ""
           
-          # Publish to OSSRH using nexus-publish-plugin
-          ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --info -S
+          # Publish to Central Portal using Vanniktech Maven Publish plugin
+          ./gradlew publishAllPublicationsToMavenCentralRepository -Pversion="$PROJECT_VERSION" --info -S
           
           echo ""
-          echo "✅ Published to OSSRH staging repository"
-          echo "🔄 Closing and releasing staging repository..."
+          echo "✅ Published to Central Portal"
+          echo "🔄 Artifacts are being processed..."
 
       - name: Publishing Success
         if: success()
         run: |
-          echo "✅ Successfully published to Maven Central via OSSRH!"
-          echo "🔍 Check deployment status: https://s01.oss.sonatype.org/"
-          echo "⏱️  It may take a few minutes to appear on Maven Central"
+          echo "✅ Successfully published to Maven Central via Central Portal!"
+          echo "🔍 Check deployment status: https://central.sonatype.com/"
+          echo "⏱️  Artifacts will appear on Maven Central once processing completes"
