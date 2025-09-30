@@ -14,18 +14,18 @@ fi
 
 echo "⚠️  IMPORTANT: Publishing Information"
 echo "======================================"
-echo "This project uses OSSRH (s01.oss.sonatype.org) for automated publishing."
+echo "This project uses Central Portal for automated publishing to Maven Central."
 echo ""
 echo "📦 Current Release Process:"
 echo "1. Push git tag (e.g., v1.0.0) to trigger GitHub Actions release"
-echo "2. Automated: Publishes to OSSRH staging repository"
-echo "3. Automated: Closes and releases to Maven Central"
+echo "2. Automated: Publishes to Central Portal"
+echo "3. Automated: Artifacts propagate to Maven Central"
 echo "4. Manual fallback: Download from GitHub Releases and upload to Central Portal"
 echo ""
 echo "🔗 Resources:"
-echo "• OSSRH Guide: https://central.sonatype.org/publish/publish-guide/"
-echo "• OSSRH Signup: https://issues.sonatype.org/"
-echo "• Central Portal (manual upload): https://central.sonatype.com/"
+echo "• Central Portal: https://central.sonatype.com/"
+echo "• Publishing Guide: https://central.sonatype.org/publish/publish-guide/"
+echo "• Generate Token: https://central.sonatype.com/ → View Account → Generate User Token"
 echo ""
 
 echo "📋 Current build configuration:"
@@ -50,12 +50,12 @@ if [[ "$setup_gpg" =~ ^[Yy]$ ]]; then
     
     GPG_KEY=$(read_secret "GPG Private Key (optional)")
     if [ -n "$GPG_KEY" ]; then
-        export GPG_PRIVATE_KEY="$GPG_KEY"
+        export ORG_GRADLE_PROJECT_signingInMemoryKey="$GPG_KEY"
     fi
     
     GPG_PASS=$(read_secret "GPG Passphrase (optional)")
     if [ -n "$GPG_PASS" ]; then
-        export GPG_PASSPHRASE="$GPG_PASS"
+        export ORG_GRADLE_PROJECT_signingInMemoryKeyPassword="$GPG_PASS"
     fi
     
     echo
@@ -72,9 +72,10 @@ if [[ "$setup_gpg" =~ ^[Yy]$ ]]; then
 else
     echo
     echo "📚 For Maven Central publishing:"
-    echo "  1. Set up OSSRH credentials (OSSRH_USERNAME/OSSRH_PASSWORD)"
-    echo "  2. Push a git tag (e.g., v1.0.0) to trigger automated release"
-    echo "  3. Artifacts automatically publish to Maven Central via OSSRH"
+    echo "  1. Generate token at https://central.sonatype.com/ → View Account → Generate User Token"
+    echo "  2. Set up GitHub secrets (MAVEN_CENTRAL_USERNAME/PASSWORD, SIGNING_KEY/PASSWORD)"
+    echo "  3. Push a git tag (e.g., v1.0.0) to trigger automated release"
+    echo "  4. Artifacts automatically publish to Maven Central via Central Portal"
     echo
     echo "📚 For local development:"
     echo "  ./gradlew build                 # Build and test"
