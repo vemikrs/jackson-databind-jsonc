@@ -20,7 +20,15 @@ version = project.property("version") as String
 // Configure Vanniktech Maven Publish Plugin for Central Portal
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-    signAllPublications()
+    
+    // Only sign if credentials are available
+    val hasSigningKey = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey") != null
+        || System.getenv("GPG_PRIVATE_KEY") != null
+        || System.getenv("SIGNING_SECRET_KEY") != null
+    
+    if (hasSigningKey) {
+        signAllPublications()
+    }
     
     coordinates("jp.vemi", "jackson-databind-jsonc", version.toString())
     
@@ -78,9 +86,8 @@ java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
     
-    // Generate sources and javadoc JARs required for Maven Central
-    withSourcesJar()
-    withJavadocJar()
+    // Note: Vanniktech plugin automatically generates sources and javadoc JARs for Maven Central
+    // No need for withSourcesJar() and withJavadocJar() here
 }
 
 tasks {
