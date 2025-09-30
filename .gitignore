@@ -36,3 +36,6 @@ secret*
 *.tmp
 *.temp
 .tmp/
+
+# History files
+.history/
