@@ -1,8 +1,8 @@
 # Publishing Guide
 
-This document explains how to publish releases to Maven Central using the automated Central Portal workflow and manage the CI/CD process.
+This document explains how to publish releases to Maven Central using the automated OSSRH workflow and manage the CI/CD process.
 
-> **✅ SUCCESS**: This project now supports fully automated publishing to Maven Central using Central Portal API integration.
+> **✅ SUCCESS**: This project now supports fully automated publishing to Maven Central using OSSRH (s01.oss.sonatype.org) with staging repository management.
 
 ## Release Process Overview
 
@@ -20,22 +20,33 @@ The release process is now split into separate workflows:
 **What Happens Automatically:**
 1. **Build Artifacts**: Creates slim JAR, fat JAR, sources JAR, and javadoc JAR
 2. **GitHub Release**: Creates release with JAR attachments and release notes
-3. **Maven Central Publishing**: Automatically uploads and publishes to Maven Central Portal
-4. **Validation**: Verifies artifacts are available on Maven Central
+3. **Maven Central Publishing**: Automatically uploads to OSSRH staging, then closes and releases to Maven Central
+4. **Validation**: Artifacts propagate to Maven Central within minutes
 
 ### 2. Prerequisites for Automated Publishing
 
-**Required GitHub Secrets:**
-- `CENTRAL_PORTAL_USERNAME`: Your Central Portal username
-- `CENTRAL_PORTAL_PASSWORD`: Your Central Portal password/token
+**Required GitHub Secrets (in priority order):**
+
+**Preferred (OSSRH):**
+- `OSSRH_USERNAME`: Your OSSRH account username
+- `OSSRH_PASSWORD`: Your OSSRH account password/token
+
+**Fallback (for migration compatibility):**
+- `CENTRAL_PORTAL_USERNAME`: Central Portal username (fallback)
+- `CENTRAL_PORTAL_PASSWORD`: Central Portal password/token (fallback)
+
+**Optional (for signing):**
 - `GPG_PRIVATE_KEY`: GPG private key for signing artifacts (optional)
 - `GPG_PASSPHRASE`: GPG key passphrase (optional)
 
-**Setup Central Portal Credentials:**
-1. Visit https://central.sonatype.com/
-2. Sign in with your Sonatype account
-3. Generate Publisher API credentials
+**Setup OSSRH Credentials:**
+1. Create account at https://issues.sonatype.org/
+2. Request publish rights for jp.vemi groupId
+3. Generate authentication token (or use password)
 4. Add credentials as GitHub repository secrets
+
+**Credential Migration:**
+If you already have `CENTRAL_PORTAL_USERNAME/PASSWORD` secrets, the system will use them as fallback. For best results, add `OSSRH_USERNAME/PASSWORD` secrets.
 
 ### 3. Manual Release (Fallback)
 
@@ -48,7 +59,7 @@ If automated publishing fails, you can skip Maven Central and upload manually:
 ### 4. Local Development and Testing
 
 ```bash
-# Validate Central Portal credentials  
+# Validate publishing credentials  
 ./gradlew validateCredentials
 
 # Publish to local Maven repository only
@@ -57,8 +68,8 @@ If automated publishing fails, you can skip Maven Central and upload manually:
 # Build all release artifacts
 ./gradlew clean build fatJar
 
-# Test Central Portal publishing (requires credentials)
-./gradlew publishToCentralPortal
+# Test OSSRH publishing (requires credentials)
+./gradlew publishToSonatype
 ```
 
 ## Troubleshooting
@@ -66,12 +77,12 @@ If automated publishing fails, you can skip Maven Central and upload manually:
 ### Migration-Related Issues
 
 **Symptoms:**
-- Build references to deprecated OSSRH endpoints
-- Missing Sonatype publishing tasks
+- 404 errors when initializing staging repositories
+- Build references to old Central Portal API endpoints
 
 **Solutions:**
-1. **Use new workflow**: Current release workflow creates GitHub releases with artifacts
-2. **Manual upload**: Download artifacts from GitHub releases and upload to Central Portal
+1. **Update credentials**: Use OSSRH_USERNAME/OSSRH_PASSWORD secrets
+2. **Verify configuration**: Run `./gradlew validateCredentials`
 3. **Clear cache**: `./gradlew clean build --refresh-dependencies`
 
 ### Local Development
@@ -96,16 +107,20 @@ If automated publishing fails, you can skip Maven Central and upload manually:
 
 ## Maven Central Portal Access
 
-1. **Create Sonatype account**: Visit https://central.sonatype.com/
-2. **Request namespace**: Request access to jp.vemi group through Central Portal
+1. **Create OSSRH account**: Visit https://issues.sonatype.org/
+2. **Request namespace**: Request access to jp.vemi group through JIRA ticket
 3. **Verify domain ownership**: You may need to prove ownership of vemi.jp domain
 4. **Wait for approval**: Can take 1-2 business days
-5. **Set up GPG signing**: Required for Maven Central (can be done during upload)
+5. **Set up GPG signing**: Required for Maven Central
+
+**Alternative - Central Portal (for manual upload):**
+- For manual artifact upload, use https://central.sonatype.com/
+- Automated publishing now uses OSSRH (s01.oss.sonatype.org)
 
 ## References
 
-- [Maven Central Portal](https://central.sonatype.com/)
-- [OSSRH Sunset Information](https://central.sonatype.org/pages/ossrh-eol/)
-- [Central Portal Migration Guide](https://www.endoflineblog.com/migrate-maven-central-publishing-to-central-portal-for-a-gradle-project)
+- [OSSRH Guide](https://central.sonatype.org/publish/publish-guide/)
+- [OSSRH Signup](https://issues.sonatype.org/)
+- [Maven Central Portal](https://central.sonatype.com/) (for manual upload)
 - [Maven Central Requirements](https://central.sonatype.org/publish/requirements/)
 - [GPG Signing Guide](https://central.sonatype.org/publish/requirements/gpg/)

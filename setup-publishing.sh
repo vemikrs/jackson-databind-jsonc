@@ -12,20 +12,20 @@ if [ "$CI" = "true" ]; then
     exit $?
 fi
 
-echo "⚠️  IMPORTANT: Sonatype OSSRH Migration Notice"
-echo "=============================================="
-echo "Sonatype OSSRH is being discontinued on June 30, 2025."
-echo "This project has been migrated to Maven Central Portal."
+echo "⚠️  IMPORTANT: Publishing Information"
+echo "======================================"
+echo "This project uses OSSRH (s01.oss.sonatype.org) for automated publishing."
 echo ""
 echo "📦 Current Release Process:"
 echo "1. Push git tag (e.g., v1.0.0) to trigger GitHub Actions release"
-echo "2. Download JAR artifacts from GitHub Releases"
-echo "3. Upload manually to Maven Central Portal: https://central.sonatype.com/"
+echo "2. Automated: Publishes to OSSRH staging repository"
+echo "3. Automated: Closes and releases to Maven Central"
+echo "4. Manual fallback: Download from GitHub Releases and upload to Central Portal"
 echo ""
-echo "🔗 Migration Resources:"
-echo "• Central Portal: https://central.sonatype.com/"
-echo "• OSSRH Sunset: https://central.sonatype.org/pages/ossrh-eol/"
-echo "• Migration Guide: https://www.endoflineblog.com/migrate-maven-central-publishing-to-central-portal-for-a-gradle-project"
+echo "🔗 Resources:"
+echo "• OSSRH Guide: https://central.sonatype.org/publish/publish-guide/"
+echo "• OSSRH Signup: https://issues.sonatype.org/"
+echo "• Central Portal (manual upload): https://central.sonatype.com/"
 echo ""
 
 echo "📋 Current build configuration:"
@@ -72,9 +72,9 @@ if [[ "$setup_gpg" =~ ^[Yy]$ ]]; then
 else
     echo
     echo "📚 For Maven Central publishing:"
-    echo "  1. Push a git tag (e.g., v1.0.0) to trigger release workflow"
-    echo "  2. Download artifacts from GitHub release"
-    echo "  3. Upload manually to Central Portal: https://central.sonatype.com/"
+    echo "  1. Set up OSSRH credentials (OSSRH_USERNAME/OSSRH_PASSWORD)"
+    echo "  2. Push a git tag (e.g., v1.0.0) to trigger automated release"
+    echo "  3. Artifacts automatically publish to Maven Central via OSSRH"
     echo
     echo "📚 For local development:"
     echo "  ./gradlew build                 # Build and test"
