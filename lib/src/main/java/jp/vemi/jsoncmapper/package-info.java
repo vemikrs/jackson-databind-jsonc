@@ -21,7 +21,7 @@
  *
  * <h2>Compatibility</h2>
  * <ul>
- *   <li>Built with a Java 21 toolchain while producing Java 8–compatible bytecode.</li>
+ *   <li>Built with a Java 21 toolchain while producing Java 8-compatible bytecode.</li>
  *   <li>Maintains compatibility with standard Jackson APIs by delegating/overriding commonly
  *       used methods such as {@code readValue} and {@code readTree}.</li>
  * </ul>
