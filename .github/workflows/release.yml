@@ -128,7 +128,7 @@ jobs:
   maven-central-publish:
     needs: [build, github-release]
     runs-on: ubuntu-latest
-    name: Publish to Maven Central Portal
+    name: Publish to Maven Central via OSSRH
     if: ${{ !github.event.inputs.skip_maven_central }}
 
     steps:
@@ -150,8 +150,10 @@ jobs:
       - name: Set execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Publish to Maven Central Portal
+      - name: Publish to Maven Central via OSSRH
         env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
           CENTRAL_PORTAL_USERNAME: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
           CENTRAL_PORTAL_PASSWORD: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -159,10 +161,21 @@ jobs:
           SIGNING_SECRET_KEY: ${{ secrets.SIGNING_SECRET_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          if [ -z "$CENTRAL_PORTAL_USERNAME" ] || [ -z "$CENTRAL_PORTAL_PASSWORD" ]; then
-            echo "🚨 Missing Central Portal credentials"
-            echo "Please set CENTRAL_PORTAL_USERNAME and CENTRAL_PORTAL_PASSWORD secrets"
-            echo "📚 Setup guide: https://central.sonatype.org/publish/generate-portal-token/"
+          # Check for publishing credentials (OSSRH preferred, Central Portal fallback)
+          if [ -z "$OSSRH_USERNAME" ] && [ -z "$CENTRAL_PORTAL_USERNAME" ]; then
+            echo "🚨 Missing publishing credentials"
+            echo "Please set one of the following credential pairs as secrets:"
+            echo ""
+            echo "Preferred (OSSRH):"
+            echo "  • OSSRH_USERNAME"
+            echo "  • OSSRH_PASSWORD"
+            echo ""
+            echo "Fallback (Central Portal):"
+            echo "  • CENTRAL_PORTAL_USERNAME"
+            echo "  • CENTRAL_PORTAL_PASSWORD"
+            echo ""
+            echo "📚 Setup guide: https://central.sonatype.org/publish/publish-guide/#deployment"
+            echo "📚 OSSRH account: https://issues.sonatype.org/"
             echo ""
             echo "📋 Manual upload instructions:"
             echo "1. Visit: https://central.sonatype.com/"
@@ -172,17 +185,28 @@ jobs:
             exit 1
           fi
           
-          echo "📦 Publishing to Maven Central Portal..."
+          if [ -n "$OSSRH_USERNAME" ]; then
+            echo "📦 Publishing to Maven Central via OSSRH (s01.oss.sonatype.org)..."
+            echo "Using OSSRH credentials"
+          else
+            echo "📦 Publishing to Maven Central via OSSRH (s01.oss.sonatype.org)..."
+            echo "Using Central Portal credentials (fallback)"
+          fi
           
-          # Publish to Central Portal using nexus-publish-plugin
+          # Validate configuration
+          ./gradlew validateCredentials
+          echo ""
+          
+          # Publish to OSSRH using nexus-publish-plugin
           ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository
           
-          echo "✅ Published to Central Portal staging repository"
+          echo ""
+          echo "✅ Published to OSSRH staging repository"
           echo "🔄 Closing and releasing staging repository..."
 
       - name: Publishing Success
         if: success()
         run: |
-          echo "✅ Successfully published to Maven Central Portal!"
-          echo "🔍 Check deployment status: https://central.sonatype.com/"
+          echo "✅ Successfully published to Maven Central via OSSRH!"
+          echo "🔍 Check deployment status: https://s01.oss.sonatype.org/"
           echo "⏱️  It may take a few minutes to appear on Maven Central"
