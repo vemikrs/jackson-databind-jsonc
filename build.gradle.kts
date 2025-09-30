@@ -1,91 +1,65 @@
-import java.time.Duration
-
 plugins {
-    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
+    id("com.vanniktech.maven.publish") version "0.30.0" apply false
 }
 
-// OSSRH Configuration (s01.oss.sonatype.org)
-// ==========================================
-// This project uses OSSRH (Sonatype OSSRH s01) for publishing to Maven Central.
-// 
-// Required environment variables for automated publishing (priority order):
-// 1. Preferred: OSSRH_USERNAME / OSSRH_PASSWORD
-// 2. Fallback: CENTRAL_PORTAL_USERNAME / CENTRAL_PORTAL_PASSWORD
-// 
-// Setup guide: https://central.sonatype.org/publish/publish-guide/#deployment
+group = "jp.vemi"
 
-nexusPublishing {
-    repositories {
-        sonatype {
-            // OSSRH s01 configuration via nexus-publish-plugin
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-            
-            // Priority: OSSRH_* -> CENTRAL_PORTAL_* -> empty string
-            username.set(System.getenv("OSSRH_USERNAME") 
-                ?: System.getenv("CENTRAL_PORTAL_USERNAME") 
-                ?: "")
-            password.set(System.getenv("OSSRH_PASSWORD") 
-                ?: System.getenv("CENTRAL_PORTAL_PASSWORD") 
-                ?: "")
-        }
-    }
-    
-    // Configure timeouts for publishing
-    connectTimeout.set(Duration.ofMinutes(3))
-    clientTimeout.set(Duration.ofMinutes(3))
-    
-    // Transition check settings
-    transitionCheckOptions {
-        maxRetries.set(60)
-        delayBetween.set(Duration.ofSeconds(10))
-    }
-}
+// Central Portal Configuration
+// =============================
+// This project uses the new Central Portal for publishing to Maven Central.
+// 
+// Required environment variables (via ORG_GRADLE_PROJECT_ prefix):
+// - ORG_GRADLE_PROJECT_mavenCentralUsername: Central Portal token name/ID
+// - ORG_GRADLE_PROJECT_mavenCentralPassword: Central Portal token secret
+// - ORG_GRADLE_PROJECT_signingInMemoryKey: GPG private key for signing
+// - ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: GPG key passphrase
+// 
+// Setup guide: https://central.sonatype.com/
 
 // Add publishing tasks for validation
 tasks.register("checkCentralPortalCredentials") {
     group = "verification"
-    description = "Validates OSSRH/Central Portal publishing configuration"
+    description = "Validates Central Portal publishing configuration"
     
     doLast {
-        // Check OSSRH credentials (preferred)
-        val ossrhUsername = System.getenv("OSSRH_USERNAME")
-        val ossrhPassword = System.getenv("OSSRH_PASSWORD")
-        
-        // Check Central Portal credentials (fallback)
-        val portalUsername = System.getenv("CENTRAL_PORTAL_USERNAME")
-        val portalPassword = System.getenv("CENTRAL_PORTAL_PASSWORD")
+        // Check Central Portal credentials
+        val mavenCentralUsername = System.getenv("ORG_GRADLE_PROJECT_mavenCentralUsername")
+        val mavenCentralPassword = System.getenv("ORG_GRADLE_PROJECT_mavenCentralPassword")
+        val signingKey = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey")
+        val signingPassword = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyPassword")
         
         println("=== Publishing Configuration ===")
-        println("OSSRH credentials (preferred):")
-        println("  Username: ${if (!ossrhUsername.isNullOrEmpty()) "✓" else "✗"}")
-        println("  Password: ${if (!ossrhPassword.isNullOrEmpty()) "✓" else "✗"}")
+        println("Central Portal credentials:")
+        println("  Username: ${if (!mavenCentralUsername.isNullOrEmpty()) "✓" else "✗"}")
+        println("  Password: ${if (!mavenCentralPassword.isNullOrEmpty()) "✓" else "✗"}")
         println("")
-        println("Central Portal credentials (fallback):")
-        println("  Username: ${if (!portalUsername.isNullOrEmpty()) "✓" else "✗"}")
-        println("  Password: ${if (!portalPassword.isNullOrEmpty()) "✓" else "✗"}")
+        println("Signing credentials:")
+        println("  Signing Key: ${if (!signingKey.isNullOrEmpty()) "✓" else "✗"}")
+        println("  Signing Password: ${if (!signingPassword.isNullOrEmpty()) "✓" else "✗"}")
         println("")
         
-        val hasOssrhCreds = !ossrhUsername.isNullOrEmpty() && !ossrhPassword.isNullOrEmpty()
-        val hasPortalCreds = !portalUsername.isNullOrEmpty() && !portalPassword.isNullOrEmpty()
+        val hasMavenCentralCreds = !mavenCentralUsername.isNullOrEmpty() && !mavenCentralPassword.isNullOrEmpty()
+        val hasSigningCreds = !signingKey.isNullOrEmpty() && !signingPassword.isNullOrEmpty()
         
-        if (!hasOssrhCreds && !hasPortalCreds) {
-            println("⚠️  Missing publishing credentials")
-            println("Required environment variables (in priority order):")
-            println("• OSSRH_USERNAME / OSSRH_PASSWORD (preferred)")
-            println("• CENTRAL_PORTAL_USERNAME / CENTRAL_PORTAL_PASSWORD (fallback)")
+        if (!hasMavenCentralCreds) {
+            println("⚠️  Missing Central Portal publishing credentials")
+            println("Required environment variables:")
+            println("• ORG_GRADLE_PROJECT_mavenCentralUsername")
+            println("• ORG_GRADLE_PROJECT_mavenCentralPassword")
             println("")
-            println("📚 Setup guide: https://central.sonatype.org/publish/publish-guide/#deployment")
-            println("📚 OSSRH account: https://issues.sonatype.org/")
-        } else if (hasOssrhCreds) {
-            println("✅ OSSRH credentials configured (using preferred)")
-            println("Target: https://s01.oss.sonatype.org/")
-            println("Ready for automated publishing!")
+            println("📚 Setup guide: https://central.sonatype.com/")
         } else {
-            println("✅ Central Portal credentials configured (using fallback)")
-            println("Target: https://s01.oss.sonatype.org/")
-            println("💡 Consider migrating to OSSRH_* environment variables")
+            println("✅ Central Portal credentials configured")
+            println("Target: https://central.sonatype.com/")
             println("Ready for automated publishing!")
+        }
+        
+        if (!hasSigningCreds) {
+            println("")
+            println("⚠️  Missing signing credentials (optional but recommended)")
+            println("Optional environment variables:")
+            println("• ORG_GRADLE_PROJECT_signingInMemoryKey")
+            println("• ORG_GRADLE_PROJECT_signingInMemoryKeyPassword")
         }
     }
 }
