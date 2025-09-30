@@ -58,7 +58,7 @@ jobs:
           retention-days: 30
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         if: success() || failure()
         with:
           name: JUnit Tests
