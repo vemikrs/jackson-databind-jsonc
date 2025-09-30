@@ -5,6 +5,8 @@
  * For more details on building Java & JVM projects, please refer to https://docs.gradle.org/8.10.2/userguide/building_java_projects.html in the Gradle documentation.
  */
 
+import java.util.Base64
+
 plugins {
     `java-library`
     `maven-publish`
@@ -140,13 +142,52 @@ tasks {
 // GPG Signing Configuration
 // Note: For Maven Central Portal, artifacts can be signed locally or uploaded unsigned
 signing {
-    val signingKey = System.getenv("GPG_PRIVATE_KEY")
-    val signingPassword = System.getenv("GPG_PASSPHRASE")
+    // Support multiple environment variable naming conventions
+    // Priority: GPG_* > SIGNING_*
+    var signingKey = System.getenv("GPG_PRIVATE_KEY") ?: System.getenv("SIGNING_SECRET_KEY")
+    val signingPassword = System.getenv("GPG_PASSPHRASE") ?: System.getenv("SIGNING_PASSWORD")
     val hasSigningCredentials = !signingKey.isNullOrEmpty() && !signingPassword.isNullOrEmpty()
     
-    if (hasSigningCredentials) {
-        useInMemoryPgpKeys(signingKey, signingPassword)
-        sign(publishing.publications)
+    if (hasSigningCredentials && signingKey != null) {
+        // Transform key if needed
+        var transformedKey = signingKey
+        
+        // 1. Convert escaped newlines (\n as string literal) to actual newlines
+        if (transformedKey.contains("\\n")) {
+            transformedKey = transformedKey.replace("\\n", "\n")
+            println("GPG key: Converted escaped newlines to actual newlines")
+        }
+        
+        // 2. Detect and decode Base64-encoded keys
+        // Base64 keys typically don't contain the ASCII armor header
+        if (!transformedKey.contains("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
+            try {
+                // Attempt Base64 decode
+                val decoder = Base64.getDecoder()
+                val decoded = decoder.decode(transformedKey.replace("\n", "").replace("\r", ""))
+                transformedKey = decoded.toString(Charsets.UTF_8)
+                println("GPG key: Decoded from Base64 format")
+            } catch (e: IllegalArgumentException) {
+                // Not Base64, might already be ASCII-armored but without proper newlines
+                println("GPG key: Not Base64 encoded, using as-is")
+            }
+        }
+        
+        // 3. Validate ASCII-armored format
+        if (transformedKey.contains("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
+            try {
+                useInMemoryPgpKeys(transformedKey, signingPassword)
+                sign(publishing.publications)
+                println("✓ GPG signing configured successfully")
+            } catch (e: Exception) {
+                println("⚠ Failed to configure GPG signing: ${e.message}")
+                println("  Artifacts will be unsigned - signing can be done during Maven Central upload")
+            }
+        } else {
+            println("⚠ GPG key does not appear to be in ASCII-armored format")
+            println("  Expected format: -----BEGIN PGP PRIVATE KEY BLOCK-----")
+            println("  Artifacts will be unsigned - signing can be done during Maven Central upload")
+        }
     } else {
         println("GPG signing credentials not found - artifacts will be unsigned")
         println("For Maven Central Portal: signing can be done during upload or locally")
