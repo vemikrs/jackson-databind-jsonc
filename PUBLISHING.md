@@ -6,10 +6,9 @@ This document explains how to publish releases to Maven Central using the automa
 
 ## Release Process Overview
 
-The release process is now split into separate workflows:
+The release process uses the following workflow:
 
-1. **Build Workflow** (`.github/workflows/build.yml`) - Runs on every push/PR
-2. **Release Workflow** (`.github/workflows/release.yml`) - Runs on tags and publishes to Maven Central
+1. **Release Workflow** (`.github/workflows/release.yml`) - Runs on tags and publishes to Maven Central via OSSRH
 
 ### 1. Automated Release Process
 
