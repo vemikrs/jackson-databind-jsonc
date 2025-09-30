@@ -183,7 +183,7 @@ implementation 'jp.vemi:jackson-databind-jsonc:1.0.5'
 ```
 
 ### 手動インストール
-1. [Releases ページ](https://github.com/vemic/jackson-databind-jsonc/releases) から JAR をダウンロード
+1. [Releases ページ](https://github.com/vemikrs/jackson-databind-jsonc/releases) から JAR をダウンロード
 2. プロジェクトのクラスパスに追加
 
 **📋 リリース情報:**

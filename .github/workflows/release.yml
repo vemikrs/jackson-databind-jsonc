@@ -29,6 +29,7 @@ jobs:
     name: Build Release Artifacts
     outputs:
       version: ${{ steps.version.outputs.version }}
+      publish_version: ${{ steps.version.outputs.publish_version }}
 
     steps:
       - name: Checkout repository
@@ -47,12 +48,15 @@ jobs:
         id: version
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
-            VERSION="${{ github.event.inputs.version }}"
+            TAG_VERSION="${{ github.event.inputs.version }}"
           else
-            VERSION="${GITHUB_REF#refs/tags/}"
+            TAG_VERSION="${GITHUB_REF#refs/tags/}"
           fi
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Building version: ${VERSION}"
+          # Strip leading 'v' from tag for artifact/POM version
+          PUBLISH_VERSION="${TAG_VERSION#v}"
+          echo "version=${TAG_VERSION}" >> $GITHUB_OUTPUT
+          echo "publish_version=${PUBLISH_VERSION}" >> $GITHUB_OUTPUT
+          echo "Building version: ${TAG_VERSION} (publish version: ${PUBLISH_VERSION})"
 
       - name: Build and sign artifacts
         env:
@@ -61,7 +65,8 @@ jobs:
           SIGNING_SECRET_KEY: ${{ secrets.SIGNING_SECRET_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          ./gradlew clean build fatJar publishToMavenLocal
+          export PROJECT_VERSION="${{ steps.version.outputs.publish_version }}"
+          ./gradlew clean build fatJar publishToMavenLocal -Pversion="$PROJECT_VERSION"
           
       - name: List built artifacts
         run: |
@@ -102,10 +107,10 @@ jobs:
           body: |
             ## 📦 Artifacts
             
-            - **Slim JAR** (recommended): `jackson-databind-jsonc-${{ needs.build.outputs.version }}.jar`
-            - **Fat JAR** (all-in-one): `jackson-databind-jsonc-${{ needs.build.outputs.version }}-all.jar`
-            - **Sources JAR**: `jackson-databind-jsonc-${{ needs.build.outputs.version }}-sources.jar`
-            - **Javadoc JAR**: `jackson-databind-jsonc-${{ needs.build.outputs.version }}-javadoc.jar`
+            - **Slim JAR** (recommended): `jackson-databind-jsonc-${{ needs.build.outputs.publish_version }}.jar`
+            - **Fat JAR** (all-in-one): `jackson-databind-jsonc-${{ needs.build.outputs.publish_version }}-all.jar`
+            - **Sources JAR**: `jackson-databind-jsonc-${{ needs.build.outputs.publish_version }}-sources.jar`
+            - **Javadoc JAR**: `jackson-databind-jsonc-${{ needs.build.outputs.publish_version }}-javadoc.jar`
             
             ## 🚀 Maven Central
             
@@ -114,15 +119,15 @@ jobs:
             
             **Gradle:**
             ```kotlin
-            implementation("jp.vemi:jackson-databind-jsonc:${{ needs.build.outputs.version }}")
+            implementation("jp.vemi:jackson-databind-jsonc:${{ needs.build.outputs.publish_version }}")
             ```
             
             **Maven:**
             ```xml
             <dependency>
-                <groupId>jp.vemi</groupId>
-                <artifactId>jackson-databind-jsonc</artifactId>
-                <version>${{ needs.build.outputs.version }}</version>
+              <groupId>jp.vemi</groupId>
+              <artifactId>jackson-databind-jsonc</artifactId>
+              <version>${{ needs.build.outputs.publish_version }}</version>
             </dependency>
             ```
 
@@ -174,11 +179,12 @@ jobs:
           echo "Using Central Portal credentials"
           
           # Validate configuration
-          ./gradlew validateCredentials
+          export PROJECT_VERSION="${{ needs.build.outputs.publish_version }}"
+          ./gradlew validateCredentials -Pversion="$PROJECT_VERSION"
           echo ""
           
           # Publish to Central Portal using Vanniktech Maven Publish plugin
-          ./gradlew publishAllPublicationsToMavenCentralRepository --info -S
+          ./gradlew publishAllPublicationsToMavenCentralRepository -Pversion="$PROJECT_VERSION" --info -S
           
           echo ""
           echo "✅ Published to Central Portal"

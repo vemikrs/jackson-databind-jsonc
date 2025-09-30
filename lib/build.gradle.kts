@@ -15,7 +15,19 @@ plugins {
 }
 
 group = "jp.vemi"
-version = project.property("version") as String
+// Resolve version with fallbacks:
+// 1) Environment variable PROJECT_VERSION (for CI or ad-hoc builds)
+// 2) Gradle property "version" (from gradle.properties or -Pversion=...)
+// 3) Safe default to avoid "unspecified" artifacts
+run {
+    val envVersion = System.getenv("PROJECT_VERSION")?.trim().orEmpty()
+    val propVersion = findProperty("version")?.toString()?.trim().orEmpty()
+    version = when {
+        envVersion.isNotEmpty() -> envVersion
+        propVersion.isNotEmpty() -> propVersion
+        else -> "0.0.0-SNAPSHOT"
+    }
+}
 
 // Configure Vanniktech Maven Publish Plugin for Central Portal
 mavenPublishing {
