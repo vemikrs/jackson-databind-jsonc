@@ -4,7 +4,7 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/jp.vemi/jackson-databind-jsonc.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/jp.vemi/jackson-databind-jsonc)
 [![javadoc](https://javadoc.io/badge2/jp.vemi/jackson-databind-jsonc/latest/javadoc.svg)](https://javadoc.io/doc/jp.vemi/jackson-databind-jsonc/latest/)
-[![Release Workflow](https://github.com/vemikrs/jackson-databind-jsonc/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vemikrs/jackson-databind-jsonc/actions/workflows/release.yml)
+[![Release Workflow](https://github.com/vemikrs/jackson-databind-jsonc/actions/workflows/release.yml/badge.svg)](https://github.com/vemikrs/jackson-databind-jsonc/actions/workflows/release.yml)
 
 このプロジェクトは、Jackson の `JsonMapper` を拡張し、JSONC（コメント付きJSON）を扱える `JsoncMapper` を提供します。
 
