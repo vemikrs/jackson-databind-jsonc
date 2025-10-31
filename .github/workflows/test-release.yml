@@ -101,7 +101,7 @@ jobs:
           fi
 
       - name: Upload Test Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-release-artifacts-${{ inputs.test_scenario }}
           path: lib/build/libs/*.jar
