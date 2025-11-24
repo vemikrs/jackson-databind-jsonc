@@ -31,7 +31,11 @@ run {
 
 // Configure Vanniktech Maven Publish Plugin for Central Portal
 mavenPublishing {
-    publishToMavenCentral()
+    // CodeQL の autobuild など、解析用ビルドでは publishToMavenCentral をスキップ
+    val isCodeqlBuild = System.getenv("CODEQL_EXTRACTOR_JAVA_ROOT") != null
+    if (!isCodeqlBuild) {
+        publishToMavenCentral()
+    }
     
     // Only sign if credentials are available
     val hasSigningKey = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey") != null
