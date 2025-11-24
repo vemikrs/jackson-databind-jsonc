@@ -31,7 +31,7 @@ run {
 
 // Configure Vanniktech Maven Publish Plugin for Central Portal
 mavenPublishing {
-    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
     
     // Only sign if credentials are available
     val hasSigningKey = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey") != null
