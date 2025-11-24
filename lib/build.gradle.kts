@@ -31,9 +31,16 @@ run {
 
 // Configure Vanniktech Maven Publish Plugin for Central Portal
 mavenPublishing {
-    // CodeQL の autobuild など、解析用ビルドでは publishToMavenCentral をスキップ
-    val isCodeqlBuild = System.getenv("CODEQL_EXTRACTOR_JAVA_ROOT") != null
-    if (!isCodeqlBuild) {
+    // Guard publishToMavenCentral() behind an explicit property flag.
+    // This prevents the plugin's Central Portal configuration from being evaluated
+    // during normal CI builds (build, test, CodeQL analysis, etc.), which can fail
+    // with NoSuchMethodError on certain Gradle API calls.
+    //
+    // To enable Maven Central publishing, run:
+    //   ./gradlew -PenableCentralPublishing=true :lib:publish
+    val enableCentralPublishing = project.findProperty("enableCentralPublishing") == "true"
+
+    if (enableCentralPublishing) {
         publishToMavenCentral()
     }
     
