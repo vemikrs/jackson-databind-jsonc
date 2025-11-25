@@ -6,7 +6,7 @@ Always reference these instructions first and fallback to search or bash command
 
 ## Quick Start Summary
 - **Language**: Java 21 (required, toolchain enforced)
-- **Build System**: Gradle 8.10.2 with wrapper
+- **Build System**: Gradle 8.14.3 with wrapper
 - **Main Classes**: `JsoncMapper` (extends Jackson's JsonMapper), `JsoncUtils` (comment removal utility)
 - **Test Framework**: JUnit Jupiter 5.11.4 (14 tests total)
 - **Core Dependencies**: Jackson Databind 2.18.4, Guava 33.4.0-jre, Apache Commons Math 3.6.1
@@ -98,10 +98,11 @@ Always reference these instructions first and fallback to search or bash command
 - JUnit Jupiter: 5.11.4 (testing)
 
 ### Gradle Configuration
-- Uses Gradle 8.10.2 with wrapper
+- Uses Gradle 8.14.3 with wrapper
 - Java 21 toolchain required
 - Shadow plugin configured (but shadowJar task has issues)
 - Multi-project build with single `lib` module
+- Maven Central publishing requires `-PenableCentralPublishing=true` flag
 
 ## Development Workflows
 
