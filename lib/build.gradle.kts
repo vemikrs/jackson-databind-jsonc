@@ -94,6 +94,14 @@ dependencies {
     // Additional dependencies for enhanced functionality
     api(libs.commons.math3)
     implementation(libs.guava)
+    
+    // Security: Enforce safe OkHttp version for all configurations
+    // CVE-2021-0341: Certificate validation vulnerability in OkHttp < 4.9.2
+    constraints {
+        implementation("com.squareup.okhttp3:okhttp:4.12.0") {
+            because("CVE-2021-0341: Fix certificate validation vulnerability in versions < 4.9.2")
+        }
+    }
 
     // テスト依存
     testImplementation(libs.junit.jupiter)
