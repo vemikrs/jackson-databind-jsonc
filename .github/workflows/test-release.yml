@@ -60,11 +60,11 @@ jobs:
           echo "Step 1: Validate credentials"
           ./gradlew validateCredentials
           
-          echo "Step 2: Check Sonatype tasks"
-          ./gradlew tasks --group=publishing
+          echo "Step 2: Check Central Portal publishing tasks (requires -PenableCentralPublishing=true)"
+          ./gradlew -PenableCentralPublishing=true tasks --group=publishing
           
-          echo "Step 3: Verify publishToSonatype exists"
-          ./gradlew help --task publishToSonatype
+          echo "Step 3: Verify publishToMavenCentral task exists"
+          ./gradlew -PenableCentralPublishing=true help --task publishToMavenCentral
 
       - name: Test Scenario - Full Simulation
         if: ${{ inputs.test_scenario == 'full-simulation' }}

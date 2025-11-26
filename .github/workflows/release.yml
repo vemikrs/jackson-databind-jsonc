@@ -184,7 +184,8 @@ jobs:
           echo ""
           
           # Publish to Central Portal using Vanniktech Maven Publish plugin
-          ./gradlew publishAllPublicationsToMavenCentralRepository -Pversion="$PROJECT_VERSION" --info -S
+          # -PenableCentralPublishing=true enables the publishToMavenCentral() configuration
+          ./gradlew -PenableCentralPublishing=true publishAllPublicationsToMavenCentralRepository -Pversion="$PROJECT_VERSION" --info -S
           
           echo ""
           echo "✅ Published to Central Portal"
