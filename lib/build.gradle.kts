@@ -94,17 +94,6 @@ dependencies {
     // Additional dependencies for enhanced functionality
     api(libs.commons.math3)
     implementation(libs.guava)
-    
-    // Security: Defense-in-depth constraint for OkHttp version
-    // CVE-2021-0341: Certificate validation vulnerability in OkHttp < 4.9.2
-    // Note: Primary fix is in build.gradle.kts buildscript classpath.
-    // This constraint provides additional protection for any project-level
-    // dependencies that might transitively include OkHttp.
-    constraints {
-        implementation("com.squareup.okhttp3:okhttp:4.12.0") {
-            because("CVE-2021-0341: Fix certificate validation vulnerability in versions < 4.9.2")
-        }
-    }
 
     // テスト依存
     testImplementation(libs.junit.jupiter)
