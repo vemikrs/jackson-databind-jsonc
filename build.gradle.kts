@@ -1,3 +1,18 @@
+// Force OkHttp to secure version before plugin resolution
+// CVE-2021-0341: Certificate validation vulnerability in OkHttp < 4.9.2
+// Reference: https://nvd.nist.gov/vuln/detail/CVE-2021-0341
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    dependencies {
+        // Force safe OkHttp version for all buildscript dependencies
+        // This preempts the vulnerable 3.14.9 from vanniktech.maven.publish plugin
+        classpath("com.squareup.okhttp3:okhttp:4.12.0")
+    }
+}
+
 plugins {
     id("com.vanniktech.maven.publish") version "0.35.0" apply false
 }
