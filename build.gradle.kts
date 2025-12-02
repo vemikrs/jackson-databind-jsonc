@@ -9,7 +9,7 @@ buildscript {
     dependencies {
         // Force safe OkHttp version for all buildscript dependencies
         // This preempts the vulnerable 3.14.9 from vanniktech.maven.publish plugin
-        classpath("com.squareup.okhttp3:okhttp:4.12.0")
+        classpath("com.squareup.okhttp3:okhttp:5.3.2")
     }
 }
 
