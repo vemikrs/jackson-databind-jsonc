@@ -11,6 +11,7 @@ on:
 jobs:
   test-matrix:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       matrix:
         java-version: [17, 21]
@@ -73,6 +74,7 @@ jobs:
   # Test runtime compatibility across all Java versions
   compatibility-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: test-matrix
     name: Runtime Compatibility Test
     
@@ -160,6 +162,7 @@ jobs:
   compatibility-summary:
     needs: [test-matrix, compatibility-test]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: always()
     
     steps:

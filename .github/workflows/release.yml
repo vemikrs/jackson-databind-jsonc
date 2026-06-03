@@ -26,6 +26,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     name: Build Release Artifacts
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -88,6 +89,7 @@ jobs:
   github-release:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     name: Create GitHub Release
 
     steps:
@@ -134,6 +136,7 @@ jobs:
   maven-central-publish:
     needs: [build, github-release]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     name: Publish to Maven Central via Central Portal
     if: ${{ !github.event.inputs.skip_maven_central }}
 
