@@ -39,7 +39,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # For pull_request events, use default checkout (merge commit)
           # For workflow_dispatch with pr_number, checkout that specific PR
