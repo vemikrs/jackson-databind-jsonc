@@ -11,6 +11,7 @@ on:
 jobs:
   test-matrix:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       matrix:
         java-version: [17, 21]
@@ -25,7 +26,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set execute permission for gradlew
         run: chmod +x ./gradlew
@@ -37,7 +38,7 @@ jobs:
           java-version: ${{ matrix.java-version }}
 
       - name: Cache Gradle packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
@@ -73,12 +74,13 @@ jobs:
   # Test runtime compatibility across all Java versions
   compatibility-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: test-matrix
     name: Runtime Compatibility Test
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set execute permission for gradlew
         run: chmod +x ./gradlew
@@ -160,6 +162,7 @@ jobs:
   compatibility-summary:
     needs: [test-matrix, compatibility-test]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: always()
     
     steps:

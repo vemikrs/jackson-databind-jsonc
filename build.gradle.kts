@@ -9,12 +9,12 @@ buildscript {
     dependencies {
         // Force safe OkHttp version for all buildscript dependencies
         // This preempts the vulnerable 3.14.9 from vanniktech.maven.publish plugin
-        classpath("com.squareup.okhttp3:okhttp:5.3.2")
+        classpath("com.squareup.okhttp3:okhttp:5.4.0")
     }
 }
 
 plugins {
-    id("com.vanniktech.maven.publish") version "0.36.0" apply false
+    id("com.vanniktech.maven.publish") version "0.37.0" apply false
 }
 
 group = "jp.vemi"

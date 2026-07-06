@@ -26,6 +26,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     name: Build Release Artifacts
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -33,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set execute permission for gradlew
         run: chmod +x ./gradlew
@@ -88,6 +89,7 @@ jobs:
   github-release:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     name: Create GitHub Release
 
     steps:
@@ -134,12 +136,13 @@ jobs:
   maven-central-publish:
     needs: [build, github-release]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     name: Publish to Maven Central via Central Portal
     if: ${{ !github.event.inputs.skip_maven_central }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
