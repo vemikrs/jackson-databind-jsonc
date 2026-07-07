@@ -89,11 +89,7 @@ repositories {
 
 dependencies {
     // Jackson依存
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.0")
-
-    // Additional dependencies for enhanced functionality
-    api(libs.commons.math3)
-    implementation(libs.guava)
+    api("com.fasterxml.jackson.core:jackson-databind:2.22.0")
 
     // テスト依存
     testImplementation(libs.junit.jupiter)
