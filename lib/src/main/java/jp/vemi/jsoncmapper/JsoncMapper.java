@@ -72,15 +72,7 @@ public class JsoncMapper extends JsonMapper {
         applyDelegatedParserFeatures();
     }
 
-    /**
-     * Enables the underlying Jackson parser features that this mapper delegates to
-     * instead of handling via string preprocessing.
-     *
-     * <p>{@code allowInfinityAndNaN} is delegated to Jackson's
-     * {@code ALLOW_NON_NUMERIC_NUMBERS} so that {@code Infinity}/{@code -Infinity}/{@code NaN}
-     * are parsed as their actual floating-point values, rather than being rewritten to
-     * {@code null} by preprocessing.
-     */
+    /** Enables Jackson parser features that are delegated instead of handled by preprocessing. */
     @SuppressWarnings("deprecation")
     private void applyDelegatedParserFeatures() {
         if (allowInfinityAndNaN) {
@@ -154,13 +146,8 @@ public class JsoncMapper extends JsonMapper {
         /**
          * Enable support for Infinity and NaN literals.
          *
-         * <p>When enabled, parsing is delegated to Jackson's
-         * {@code JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS}, so
-         * {@code Infinity}, {@code -Infinity} and {@code NaN} are read as their actual
-         * floating-point values (e.g. {@link Double#POSITIVE_INFINITY}, {@link Double#NaN}).
-         *
-         * <p>Note: prior versions rewrote these literals to {@code null} via preprocessing.
-         * They are now preserved as numeric values instead.
+         * <p>Delegates to Jackson's {@code ALLOW_NON_NUMERIC_NUMBERS}, so {@code Infinity},
+         * {@code -Infinity} and {@code NaN} are read as their actual floating-point values.
          *
          * @param allowInfinityAndNaN true to enable Infinity and NaN support
          * @return this builder for method chaining
@@ -273,11 +260,7 @@ public class JsoncMapper extends JsonMapper {
             result = JsoncUtils.removePlusFromNumbers(result);
         }
         
-        // Note: Infinity/NaN are NOT handled here. When allowInfinityAndNaN is enabled,
-        // parsing is delegated to Jackson's ALLOW_NON_NUMERIC_NUMBERS feature
-        // (see applyDelegatedParserFeatures) so the values are read as real
-        // floating-point numbers instead of being rewritten to null.
-
+        // Infinity/NaN handled by delegation (see applyDelegatedParserFeatures), not preprocessing.
         if (allowMultilineStrings) {
             result = JsoncUtils.convertMultilineStrings(result);
         }
