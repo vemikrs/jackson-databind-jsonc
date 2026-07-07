@@ -1,5 +1,6 @@
 package jp.vemi.jsoncmapper;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
@@ -68,8 +69,25 @@ public class JsoncMapper extends JsonMapper {
         this.allowInfinityAndNaN = allowInfinityAndNaN;
         this.allowMultilineStrings = allowMultilineStrings;
         this.allowUnescapedControlChars = allowUnescapedControlChars;
+        applyDelegatedParserFeatures();
     }
-    
+
+    /**
+     * Enables the underlying Jackson parser features that this mapper delegates to
+     * instead of handling via string preprocessing.
+     *
+     * <p>{@code allowInfinityAndNaN} is delegated to Jackson's
+     * {@code ALLOW_NON_NUMERIC_NUMBERS} so that {@code Infinity}/{@code -Infinity}/{@code NaN}
+     * are parsed as their actual floating-point values, rather than being rewritten to
+     * {@code null} by preprocessing.
+     */
+    @SuppressWarnings("deprecation")
+    private void applyDelegatedParserFeatures() {
+        if (allowInfinityAndNaN) {
+            enable(JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS);
+        }
+    }
+
     /**
      * Builder class for configuring JsoncMapper options.
      */
@@ -135,8 +153,15 @@ public class JsoncMapper extends JsonMapper {
         
         /**
          * Enable support for Infinity and NaN literals.
-         * Converts JavaScript-style Infinity and NaN to JSON null or string representation.
-         * 
+         *
+         * <p>When enabled, parsing is delegated to Jackson's
+         * {@code JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS}, so
+         * {@code Infinity}, {@code -Infinity} and {@code NaN} are read as their actual
+         * floating-point values (e.g. {@link Double#POSITIVE_INFINITY}, {@link Double#NaN}).
+         *
+         * <p>Note: prior versions rewrote these literals to {@code null} via preprocessing.
+         * They are now preserved as numeric values instead.
+         *
          * @param allowInfinityAndNaN true to enable Infinity and NaN support
          * @return this builder for method chaining
          */
@@ -248,10 +273,11 @@ public class JsoncMapper extends JsonMapper {
             result = JsoncUtils.removePlusFromNumbers(result);
         }
         
-        if (allowInfinityAndNaN) {
-            result = JsoncUtils.convertInfinityAndNaN(result);
-        }
-        
+        // Note: Infinity/NaN are NOT handled here. When allowInfinityAndNaN is enabled,
+        // parsing is delegated to Jackson's ALLOW_NON_NUMERIC_NUMBERS feature
+        // (see applyDelegatedParserFeatures) so the values are read as real
+        // floating-point numbers instead of being rewritten to null.
+
         if (allowMultilineStrings) {
             result = JsoncUtils.convertMultilineStrings(result);
         }
