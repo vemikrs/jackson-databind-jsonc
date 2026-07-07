@@ -1,5 +1,6 @@
 package jp.vemi.jsoncmapper;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
@@ -68,8 +69,17 @@ public class JsoncMapper extends JsonMapper {
         this.allowInfinityAndNaN = allowInfinityAndNaN;
         this.allowMultilineStrings = allowMultilineStrings;
         this.allowUnescapedControlChars = allowUnescapedControlChars;
+        applyDelegatedParserFeatures();
     }
-    
+
+    /** Enables Jackson parser features that are delegated instead of handled by preprocessing. */
+    @SuppressWarnings("deprecation")
+    private void applyDelegatedParserFeatures() {
+        if (allowInfinityAndNaN) {
+            enable(JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS);
+        }
+    }
+
     /**
      * Builder class for configuring JsoncMapper options.
      */
@@ -135,8 +145,10 @@ public class JsoncMapper extends JsonMapper {
         
         /**
          * Enable support for Infinity and NaN literals.
-         * Converts JavaScript-style Infinity and NaN to JSON null or string representation.
-         * 
+         *
+         * <p>Delegates to Jackson's {@code ALLOW_NON_NUMERIC_NUMBERS}, so {@code Infinity},
+         * {@code -Infinity} and {@code NaN} are read as their actual floating-point values.
+         *
          * @param allowInfinityAndNaN true to enable Infinity and NaN support
          * @return this builder for method chaining
          */
@@ -248,10 +260,7 @@ public class JsoncMapper extends JsonMapper {
             result = JsoncUtils.removePlusFromNumbers(result);
         }
         
-        if (allowInfinityAndNaN) {
-            result = JsoncUtils.convertInfinityAndNaN(result);
-        }
-        
+        // Infinity/NaN handled by delegation (see applyDelegatedParserFeatures), not preprocessing.
         if (allowMultilineStrings) {
             result = JsoncUtils.convertMultilineStrings(result);
         }

@@ -8,6 +8,8 @@ Language: [日本語](./README.md) | English
 
 This project extends Jackson's `JsonMapper` by adding a `JsoncMapper` to handle JSONC (JSON with Comments).
 
+> **Version lines**: `1.x` is the current line for Jackson 2 (Java 8+). `2.x` is planned as a preset-only implementation for Jackson 3 (`tools.jackson`, Java 17+). Pick the line that matches the Jackson major you use.
+
 ## Features
 
 - Supports JSONC with block comments (`/* */`) and end-of-line comments (`//`)
@@ -15,13 +17,37 @@ This project extends Jackson's `JsonMapper` by adding a `JsoncMapper` to handle 
   - Single-quoted strings (`'text'` → `"text"`)
   - Hexadecimal numbers (`0xFF` → `255`)
   - Plus sign numbers (`+123` → `123`)
-  - Infinity and NaN literals (`Infinity`/`NaN` → `null`)
+  - Infinity and NaN literals (read as real numbers; delegated to Jackson's `ALLOW_NON_NUMERIC_NUMBERS`)
   - Multiline strings and unescaped control characters
 - Extends Jackson's `JsonMapper`
 - Multi-version Java support (Java 8, 11, 17, 21, 24)
 - Dual distribution strategy (Slim / All-in-One)
 - Protection against ReDoS attacks (linear-time algorithms)
 - Optional trailing comma removal
+
+## When Jackson's Built-in Features Are Enough
+
+If you only need to read plain JSONC (comments, trailing commas, single quotes), Jackson core already supports this via [`JsonReadFeature`](https://javadoc.io/doc/com.fasterxml.jackson.core/jackson-core/latest/com/fasterxml/jackson/core/json/JsonReadFeature.html) (2.10+) — no extra library required.
+
+```java
+// Enough with Jackson standard features alone
+ObjectMapper mapper = JsonMapper.builder()
+    .enable(JsonReadFeature.ALLOW_JAVA_COMMENTS)
+    .enable(JsonReadFeature.ALLOW_TRAILING_COMMA)
+    .enable(JsonReadFeature.ALLOW_SINGLE_QUOTES)
+    .build();
+```
+
+**This library adds value when one of the following applies:**
+
+- You want to drop in `new JsoncMapper()` in place of an existing `ObjectMapper` and just read JSONC
+- You want JSON5-style preprocessing (hex literals like `0xFF`, `+123`, `Infinity`/`NaN` absorption) bundled in one place
+- You want to manage which features are enabled declaratively via Builder flags
+
+**Conversely, Jackson's built-in features are sufficient — and this library is unnecessary — when:**
+
+- You only use comments / trailing commas / single quotes
+- You need large inputs (tens of MB+) or true streaming (this library reads the whole input into a string before preprocessing, so it is not suited for that)
 
 ## Supported Comment Formats
 
@@ -92,8 +118,10 @@ JsoncMapper mapper = new JsoncMapper.Builder()
     .allowInfinityAndNaN(true)
     .build();
 // Input: { "inf": Infinity, "nan": NaN }
-// Output: { "inf": null, "nan": null }
+// Parsed as: inf=Double.POSITIVE_INFINITY, nan=Double.NaN (kept as numeric values)
 ```
+> ℹ️ This option delegates to Jackson's standard `JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS`, reading `Infinity`/`-Infinity`/`NaN` as actual floating-point values. Values are preserved when the target is `double`/`Double` (or `Object`).
+> Note: earlier versions rewrote these literals to `null` via preprocessing, which silently dropped values; that behavior has been removed.
 
 - Multiline strings / control chars
 ```java
@@ -126,7 +154,7 @@ JsoncMapper mapper = new JsoncMapper.Builder()
 ### Slim JAR (Recommended)
 - File: `jackson-databind-jsonc-<version>.jar` (~5KB)
 - Use case: modern Jackson environments, Maven/Gradle projects
-- Dependency: Jackson Databind 2.20.0+ required
+- Dependency: `jackson-databind` is provided transitively at `api` scope (built against 2.22.0, compatible with 2.20.0+ at runtime). Maven/Gradle resolves it automatically, so you do not need to add it yourself
 - Maven: `jp.vemi:jackson-databind-jsonc:<version>`
 - Gradle: `implementation("jp.vemi:jackson-databind-jsonc:<version>")`
 
@@ -139,20 +167,20 @@ JsoncMapper mapper = new JsoncMapper.Builder()
 
 ## Installation
 
-> Latest versions are available from Maven Central (automated via Central Portal)
+> Replace `LATEST_VERSION` below with the latest version shown by the Maven Central badge at the top. Ready-to-copy, version-pinned snippets are also included in each [Release](https://github.com/vemikrs/jackson-databind-jsonc/releases).
 
 ### Maven (Slim JAR)
 ```xml
 <dependency>
   <groupId>jp.vemi</groupId>
   <artifactId>jackson-databind-jsonc</artifactId>
-  <version>1.0.5</version>
+  <version>LATEST_VERSION</version>
 </dependency>
 ```
 
 ### Gradle (Slim JAR)
 ```groovy
-implementation 'jp.vemi:jackson-databind-jsonc:1.0.5'
+implementation 'jp.vemi:jackson-databind-jsonc:LATEST_VERSION'
 ```
 
 ### Maven (All-in-One JAR)
@@ -160,13 +188,13 @@ implementation 'jp.vemi:jackson-databind-jsonc:1.0.5'
 <dependency>
   <groupId>jp.vemi</groupId>
   <artifactId>jackson-databind-jsonc-all</artifactId>
-  <version>1.0.5</version>
+  <version>LATEST_VERSION</version>
 </dependency>
 ```
 
 ### Gradle (All-in-One JAR)
 ```groovy
-implementation 'jp.vemi:jackson-databind-jsonc-all:1.0.5'
+implementation 'jp.vemi:jackson-databind-jsonc-all:LATEST_VERSION'
 ```
 
 ### Manual Installation
@@ -181,7 +209,7 @@ implementation 'jp.vemi:jackson-databind-jsonc-all:1.0.5'
 ## API Documentation
 
 - Latest (javadoc.io): https://javadoc.io/doc/jp.vemi/jackson-databind-jsonc/latest/
-- Versioned example: https://javadoc.io/doc/jp.vemi/jackson-databind-jsonc/1.0.5/
+- Versioned example: `https://javadoc.io/doc/jp.vemi/jackson-databind-jsonc/{version}/` (replace `{version}` with an actual release)
 - Local generation: run `./gradlew javadoc`, then open `lib/build/docs/javadoc/index.html`
 
 ## When to Use Which JAR
@@ -249,7 +277,7 @@ MyClass obj = mapper.readValue(jsonWithComments, MyClass.class);
 <dependency>
   <groupId>jp.vemi</groupId>
   <artifactId>jackson-databind-jsonc-all</artifactId>
-  <version>1.0.5</version>
+  <version>LATEST_VERSION</version>
 </dependency>
 ```
 

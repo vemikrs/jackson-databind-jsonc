@@ -734,9 +734,10 @@ public class JsoncMapperTest {
         String json5 = "{ \"inf\": Infinity, \"nan\": NaN, \"value\": 42 }";
         TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {};
         Map<String, Object> result = mapper.readValue(json5, typeRef);
-        
-        assertNull(result.get("inf"));  // Infinity becomes null in JSON
-        assertNull(result.get("nan"));  // NaN becomes null in JSON
+
+        // Delegated to Jackson's ALLOW_NON_NUMERIC_NUMBERS: read as real numeric values
+        assertEquals(Double.POSITIVE_INFINITY, result.get("inf"));
+        assertTrue(result.get("nan") instanceof Double && Double.isNaN((Double) result.get("nan")));
         assertEquals(42, result.get("value"));
     }
     
@@ -777,8 +778,8 @@ public class JsoncMapperTest {
         assertEquals("test", result.get("name"));
         assertEquals(255, result.get("hex"));
         assertEquals(123, result.get("plus"));
-        assertNull(result.get("inf"));
-        assertNull(result.get("nan"));
+        assertEquals(Double.POSITIVE_INFINITY, result.get("inf"));
+        assertTrue(result.get("nan") instanceof Double && Double.isNaN((Double) result.get("nan")));
     }
     
     @Test

@@ -604,13 +604,17 @@ public class JsoncUtils {
     }
     
     /**
-     * Converts Infinity and NaN literals to JSON-compatible representations.
-     * Infinity becomes null and NaN becomes null (JSON doesn't support these values).
-     * 
+     * Converts Infinity and NaN literals to JSON {@code null}.
+     *
      * @param json5 JSON5 content with potential Infinity and NaN literals
      * @return JSON content with Infinity and NaN converted to null
      * @throws IllegalArgumentException if input is null
+     * @deprecated Since the mapper now delegates {@code Infinity}/{@code NaN} handling to
+     *     Jackson's {@code ALLOW_NON_NUMERIC_NUMBERS} feature (reading them as real
+     *     floating-point values), this lossy {@code null}-conversion is no longer used by
+     *     {@link JsoncMapper}. Retained only for backward compatibility.
      */
+    @Deprecated
     public static String convertInfinityAndNaN(String json5) {
         if (json5 == null) {
             throw new IllegalArgumentException("Input cannot be null");
