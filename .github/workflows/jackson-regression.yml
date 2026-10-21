@@ -1,0 +1,145 @@
+name: Jackson 2.22.4 Regression
+
+on:
+  push:
+    branches: [ 'test/jackson-2.22.4-regressions' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build and run complete suite on 2.22.4
+        run: ./gradlew clean build --no-daemon
+      - name: Preserve green results
+        run: cp -r lib/build/test-results green-test-results
+      - name: Prove regressions fail on 2.22.3
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/baseline.gradle" <<'GRADLE'
+          allprojects {
+              configurations.configureEach {
+                  resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-databind:2.22.3'
+              }
+          }
+          GRADLE
+          set +e
+          ./gradlew -I "$RUNNER_TEMP/baseline.gradle" :lib:test --rerun-tasks --no-daemon --tests 'jp.vemi.jsoncmapper.regression.*'
+          result=$?
+          set -e
+          test "$result" -ne 0
+          python3 - <<'PY'
+          import glob
+          import xml.etree.ElementTree as ET
+          failures = set()
+          for path in glob.glob('lib/build/test-results/test/TEST-*.xml'):
+              root = ET.parse(path).getroot()
+              for case in root.findall('testcase'):
+                  if case.find('failure') is not None:
+                      failures.add(case.attrib['name'].removesuffix('()'))
+          required = {
+              'directSelfReferenceIsMappingException',
+              'genericMapKeyCannotBypassBaseTypeApproval',
+              'arrayElementCannotBypassSerializableBaseApproval',
+              'sharedDefaultViewsNeverPublishesUnresolvedNull',
+          }
+          assert required <= failures, f'Missing expected baseline failures: {required - failures}; actual: {failures}'
+          print('Confirmed baseline failures:', sorted(failures))
+          PY
+      - name: Preserve baseline results
+        if: always()
+        run: cp -r lib/build/test-results baseline-test-results
+      - name: Restore 2.22.4 and stage published dependencies
+        run: |
+          cat > "$RUNNER_TEMP/stage.gradle" <<'GRADLE'
+          gradle.projectsEvaluated {
+              gradle.rootProject.project(':lib') {
+                  tasks.register('stageRegressionRuntime', Copy) {
+                      from configurations.runtimeClasspath
+                      into layout.buildDirectory.dir('regression-runtime')
+                  }
+              }
+          }
+          GRADLE
+          ./gradlew -I "$RUNNER_TEMP/stage.gradle" clean build :lib:stageRegressionRuntime :lib:generatePomFileForMavenPublication :lib:generateMetadataFileForMavenPublication --no-daemon
+          ./gradlew :lib:dependencyInsight --dependency jackson-databind --configuration runtimeClasspath --no-daemon
+      - name: Verify public dependency metadata
+        run: |
+          python3 - <<'PY'
+          import json
+          import xml.etree.ElementTree as ET
+          ns = {'m': 'http://maven.apache.org/POM/4.0.0'}
+          pom = ET.parse('lib/build/publications/maven/pom-default.xml')
+          deps = pom.findall('.//m:dependencies/m:dependency', ns)
+          dep = next(d for d in deps if d.findtext('m:artifactId', namespaces=ns) == 'jackson-databind')
+          assert dep.findtext('m:version', namespaces=ns) == '2.22.4'
+          assert dep.findtext('m:scope', namespaces=ns) == 'compile'
+          metadata = json.load(open('lib/build/publications/maven/module.json'))
+          for name in ('apiElements', 'runtimeElements'):
+              variant = next(v for v in metadata['variants'] if v['name'] == name)
+              dependency = next(d for d in variant['dependencies'] if d['module'] == 'jackson-databind')
+              assert dependency['version']['requires'] == '2.22.4', dependency
+          print('POM and Gradle API/runtime metadata declare databind 2.22.4')
+          PY
+      - name: Compile Java 8 artifact probe
+        run: |
+          mkdir -p lib/build/regression-probe
+          slim=$(find lib/build/libs -name '*.jar' ! -name '*-all.jar' ! -name '*-shadow.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
+          javac --release 8 -cp "$slim:lib/build/regression-runtime/*" -d lib/build/regression-probe .github/regression/ArtifactSmoke.java
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: jackson-regression-reports
+          path: |
+            green-test-results/
+            baseline-test-results/
+            lib/build/test-results/
+            lib/build/publications/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: jackson-regression-distributions
+          path: |
+            lib/build/libs/*.jar
+            lib/build/regression-runtime/*.jar
+            lib/build/regression-probe/
+
+  artifact-runtime:
+    needs: regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ '8', '11', '17', '21' ]
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: jackson-regression-distributions
+          path: distribution
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '${{ matrix.java }}'
+      - name: Execute slim, fat and shadow JAR probes
+        shell: bash
+        run: |
+          java -version
+          slim=$(find distribution/libs -name '*.jar' ! -name '*-all.jar' ! -name '*-shadow.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
+          test -n "$slim"
+          java -cp "distribution/regression-probe:$slim:distribution/regression-runtime/*" jp.vemi.jsoncmapper.regression.ArtifactSmoke "$(basename "$slim")"
+          for classifier in all shadow; do
+            jar=$(find distribution/libs -name "*-$classifier.jar" | head -1)
+            test -n "$jar"
+            java -cp "distribution/regression-probe:$jar" jp.vemi.jsoncmapper.regression.ArtifactSmoke "$(basename "$jar")"
+          done
