@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
       - name: Build and run complete suite on 2.22.4
         run: ./gradlew clean build --no-daemon
       - name: Preserve green results
